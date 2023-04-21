@@ -20,6 +20,7 @@ tokio = { version = "1", features = ["full"] }
 serde_json = "1.0"
 window-vibrancy = "0.3.2"
 scraper = "0.16.0"
+ego-tree = "0.6.2"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

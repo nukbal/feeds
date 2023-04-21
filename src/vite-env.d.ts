@@ -5,7 +5,10 @@ type IdType = string;
 interface FeedItemType {
   id: IdType;
   title: string;
-  url: string | null;
+  category: string | null;
+  text: string | null;
+  thumb: string | null;
+  subId: string | null;
   author: string;
   points: number | null;
   views: number | null;
@@ -14,38 +17,48 @@ interface FeedItemType {
   modifiedAt: string | null;
 }
 
-interface DetailItemText {
+interface ContentText {
   type: 'text';
   text: string;
+  name: string | null;
+}
+interface ContentLink {
+  type: 'link' | 'youtube' | 'twitter' | 'video';
+  url: string;
 }
 
-interface DetailItemImage {
-  type: 'image',
-  value: string;
+interface ContentImage {
+  type: 'image';
+  url: string;
+  alt: string | null;
 }
 
-interface DetailItemVideo {
-  type: 'video',
-  value: string;
+interface ContentBlock {
+  type: 'block';
+  items: ContentType[];
+  name: string | null;
 }
 
-type DetailItemType = DetailItemText | DetailItemImage;
+declare type ContentType = ContentText | ContentImage | ContentBlock | ContentLink;
 
 interface FeedCommentType {
   id: IdType;
   parentId: IdType;
   author: string;
+  replyTo: string | null;
   avatar: string | null;
   up: number| null;
   down: number | null;
-  contents: DetailItemType[];
+  contents: ContentType[];
   depth: number;
   isBest: boolean;
   createdAt: string;
   modifiedAt: string | null;
+  removed: boolean;
 }
 
 interface FeedDetailType extends FeedItemType {
-  contents: DetailItemType[];
+  url: string | null;
+  contents: ContentType[];
   comments: FeedCommentType[];
 }

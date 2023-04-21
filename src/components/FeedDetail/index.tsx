@@ -6,7 +6,7 @@ interface Props {
 
 export default function FeedDetail({ children }: Props) {
   return (
-    <div class="relative flex-auto">
+    <div class="relative flex-auto overflow-x-hidden">
       <FeedDetailHeader />
       <div
         class="p-4 overflow-y-auto overflow-x-hidden bg-stone-800"

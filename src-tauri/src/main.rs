@@ -21,7 +21,6 @@ fn main() {
         
         #[cfg(target_os = "windows")]
         window_vibrancy::apply_acrylic(&window, Some((18, 18, 18, 125))).expect("Unsupported platform! 'apply_blur' is only supported on Windows");
-        
 
         #[cfg(debug_assertions)] {
             window.open_devtools();

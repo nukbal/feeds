@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-use super::structs::{LoadFeeds, FeedItem, FeedDetail, Contents, FeedComment};
+use super::structs::{LoadFeeds, FeedItem, FeedDetail, FeedComment};
+use super::utils::parse_html;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct HNSearch {
@@ -32,7 +33,7 @@ impl HNFeed {
     FeedItem {
       id: self.id.clone(),
       title: self.title.clone(),
-      url: self.url.clone(),
+      text: self.url.clone(),
       author: self.author.clone(),
       points: Some(self.points),
       comments: self.num_comments,
@@ -88,7 +89,13 @@ pub async fn load_detail(id: String) -> Result<FeedDetail, String> {
     .json::<HNDetail>()
     .await.expect("failed to parse response".into());
 
-  let comments = res.children.iter().flat_map(|s| flat_comments(s)).collect::<Vec<FeedComment>>();
+  // let mut comments = Vec::new();
+
+  // for c in res.children {
+
+  // }
+
+  let comments = res.children.iter().flat_map(|s| flat_comments(s, 0, None)).collect::<Vec<FeedComment>>();
 
   Ok(FeedDetail {
     id: res.id.to_string(),
@@ -98,64 +105,35 @@ pub async fn load_detail(id: String) -> Result<FeedDetail, String> {
     up: Some(res.points),
     comment_num: Some(comments.len() as i32),
     comments,
-    contents: (
-      if res.text.is_some() {
-        vec![Contents::Text { text: parse_text(res.text), tn: "text".to_string() }]
-      } else {
-        vec![]
-      }
-    ),
+    contents: parse_html(res.text),
     created_at: res.created_at,
     ..Default::default()
   })
 }
 
-fn parse_text(text: Option<String>) -> String {
-  if text.is_none() {
-    return "".to_string();
-  }
-  let html = scraper::Html::parse_fragment(text.unwrap().as_str());
-  // let selector = scraper::Selector::parse("*").unwrap();
-  // let root = html.root_element().select(&selector).next().unwrap();
-  let mut root = html.root_element().first_child();
-
-  let mut txt_arr = vec![""];
-
-  while root.is_some() {
-    let elem = root.unwrap();
-
-    if elem.has_children() {
-      let parent = elem.value().as_element().unwrap();
-      println!("{}", parent.name());
-      if elem.children().count() == 1 {
-        // txt_arr.push(elem.first_child().unwrap().value().as_text().unwrap().to_string().clone().as_str());
-      } else {
-        elem.children().for_each(|c| {
-          println!("{:?}", c.value());
-        });
-      }
-    }
-
-    root = elem.next_sibling();
-  }
-  
-  return txt_arr.join("\n");
-}
-
-fn flat_comments(item: &HNComment) -> Vec<FeedComment> {
+fn flat_comments(item: &HNComment, depth: i32, reply: Option<String>) -> Vec<FeedComment> {
   if item.author.is_none() || item.text.is_none() {
     return vec![];
   }
+
+  let mut arr = vec![FeedComment {
+    id: item.id.to_string(),
+    author: item.author.clone().unwrap(),
+    parent_id: if item.parent_id.is_some() { Some(item.parent_id.unwrap().to_string()) } else { None },
+    contents: parse_html(item.text.clone()),
+    created_at: item.created_at.clone(),
+    reply_to: reply,
+    depth: depth,
+    ..Default::default()
+  }];
   if item.children.len() == 0 {
-    return vec![FeedComment {
-      id: item.id.to_string(),
-      author: item.author.clone().unwrap(),
-      parent_id: if item.parent_id.is_some() { Some(item.parent_id.unwrap().to_string()) } else { None },
-      // contents: vec![Contents::Text { text: parse_text(item.text.clone()), tn: "text".to_string() }],
-      contents: vec![Contents::Text { text: "".to_string(), tn: "text".to_string() }],
-      created_at: item.created_at.clone(),
-      ..Default::default()
-    }];
+    return arr;
   }
-  item.children.iter().flat_map(|s| flat_comments(s)).collect()
+
+  item.children.iter().for_each(|s| {
+    let mut children = flat_comments(s, depth + 1, item.author.clone());
+    arr.append(&mut children);
+  });
+
+  arr
 }

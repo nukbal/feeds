@@ -1,17 +1,19 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Default, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FeedItem {
   pub id: String,
   pub title: String,
-  pub url: Option<String>,
+  pub category: Option<String>,
+  pub text: Option<String>,
+  pub thumb: Option<String>,
   pub author: String,
   pub points: Option<i32>,
   pub views: Option<i32>,
   pub comments: Option<i32>,
-  #[serde(rename = "createdAt")]
+  pub sub_id: Option<String>,
   pub created_at: String,
-  #[serde(rename = "modifiedAt")]
   pub modified_at: Option<String>,
 }
 
@@ -25,12 +27,13 @@ pub struct LoadFeeds {
   pub items_per_page: i32,
 }
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedComment {
   pub id: String,
   pub parent_id: Option<String>,
   pub author: String,
+  pub reply_to: Option<String>,
   pub avatar: Option<String>,
   pub up: Option<i32>,
   pub down: Option<i32>,
@@ -39,9 +42,10 @@ pub struct FeedComment {
   pub contents: Vec<Contents>,
   pub created_at: String,
   pub modified_at: Option<String>,
+  pub removed: bool,
 }
 
-#[derive(Default, Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetail {
   pub id: String,
@@ -58,10 +62,14 @@ pub struct FeedDetail {
   pub modified_at: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
 pub enum Contents {
-  Block { items: Vec<Contents>, tn: String, name: String },
-  Text { text: String, tn: String },
-  Link { url: String, tn: String },
+  Block { items: Vec<Contents>, name: String },
+  Text { text: String, name: Option<String> },
+  Link { url: String, text: Option<String> },
+  Image { url: String, alt: Option<String> },
+  Video { url: String },
+  Youtube { url: String },
+  // Twitter { url: String },
 }

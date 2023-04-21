@@ -1,8 +1,10 @@
+import { Show, Match } from 'solid-js';
 import { IoRefresh } from 'solid-icons/io';
 
 interface Props {
   title: string;
   total: number;
+  loading?: boolean;
   onRefresh: () => void;
 }
 
@@ -14,9 +16,11 @@ export default function FeedHeader(p: Props) {
     >
       <div class="flex flex-col justify-center select-none">
         <h3 class="font-medium text-sm m-0 p-0 leading-none cursor-default focus:cursor-default">{p.title}</h3>
-        <small class="text-xs leading-none cursor-default focus:cursor-default">{p.total} items</small>
+        <Show when={p.total}>
+          <small class="text-xs leading-none cursor-default focus:cursor-default">{p.total} items</small>
+        </Show>
       </div>
-      <button class="px-2 py-1.5 hover:bg-gray-600 rounded leading-none" onClick={p.onRefresh}>
+      <button class="px-2 py-1.5 hover:bg-gray-400/40 rounded leading-none" onClick={p.onRefresh}>
         <IoRefresh size="20" />
       </button>
     </div>

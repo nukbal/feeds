@@ -4,8 +4,12 @@ export default function parseRelativeDate(date?: string) {
   if (!date) return '-';
 
   const d = parseISO(date);
+
   const now = new Date();
   const diffMin = differenceInMinutes(now, d);
+
+  if (window.isNaN(diffMin)) return date;
+
   // 7d+
   if (diffMin > 10080) return format(d, 'LLL d hh:mm');
   // 24h+
