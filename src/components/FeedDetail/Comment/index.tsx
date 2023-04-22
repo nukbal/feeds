@@ -38,7 +38,7 @@ export default function CommentItem({ data }: Props) {
               class={`mr-2 text-${num > 0 ? 'red' : 'violet'}-500`}
               size={12}
             >
-              <span>{num}</span>
+              <span title={`${data.up ?? '-'} (${data.down ?? '-'})`}>{num}</span>
             </LabelWithIcon>
           </Show>
           <Show when={data.isBest && !num}>

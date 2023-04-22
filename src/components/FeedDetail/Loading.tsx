@@ -9,13 +9,13 @@ export default function FeedDetailLoading() {
           <span class="inline-block h-4 w-32 bg-stone-700 rounded" />
         </div>
       </header>
-      <hr class="my-8 mx-32 border-gray-400/20" />
-      <div class="py-4 space-y-2">
-        <div class="block h-4 w-32 bg-stone-700 rounded" />
-        <div class="block h-4 w-64 bg-stone-700 rounded" />
-        <div class="block h-4 w-72 bg-stone-700 rounded" />
-      </div>
-      <hr class="my-8 mx-32 border-gray-400/20" />
+      <article class="py-4 space-y-2 my-8">
+        <div class="block h-72 w-full bg-stone-700 rounded" />
+      </article>
+      <footer class="space-y-4 pt-8">
+        <div class="block h-32 w-full bg-stone-700 rounded" />
+        <div class="block h-32 w-full bg-stone-700 rounded" />
+      </footer>
     </div>
   );
 }

@@ -13,14 +13,15 @@ edition = "2021"
 tauri-build = { version = "1.2", features = [] }
 
 [dependencies]
-tauri = { version = "1.2", features = ["macos-private-api", "window-close", "window-hide", "window-maximize", "window-minimize", "window-show", "window-start-dragging", "window-unmaximize", "window-unminimize"] }
+tauri = { version = "1.2", features = ["macos-private-api", "shell-open", "window-close", "window-hide", "window-maximize", "window-minimize", "window-show", "window-start-dragging", "window-unmaximize", "window-unminimize"] }
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 serde_json = "1.0"
 window-vibrancy = "0.3.2"
-scraper = "0.16.0"
+scraper = "0.16"
 ego-tree = "0.6.2"
+chrono = "0.4"
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

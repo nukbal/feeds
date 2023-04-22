@@ -1,7 +1,7 @@
 {
   "build": {
     "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "bun build",
+    "beforeBuildCommand": "bun run build",
     "devPath": "http://localhost:1420",
     "distDir": "../dist",
     "withGlobalTauri": false
@@ -13,6 +13,13 @@
   "tauri": {
     "allowlist": {
       "all": false,
+      "shell": {
+        "all": false,
+        "execute": false,
+        "open": true,
+        "scope": [],
+        "sidecar": false
+      },
       "window": {
         "all": false,
         "close": true,

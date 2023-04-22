@@ -7,6 +7,7 @@ import FeedPage from './FeedPage';
 import DetailPages from './DetailPage';
 
 export default function AppRouter() {
+  const initialPath = localStorage.getItem('init_path') || '/feeds/hacker_news/front';
   return (
     <div class="flex flex-auto basis-full text-gray-300">
       <Sidebar />
@@ -15,11 +16,11 @@ export default function AppRouter() {
         style={{ 'border-bottom-right-radius': '12px' }}
       >
         <Routes>
-          <Route path="/feeds/:feed" component={FeedPage}>
+          <Route path="/feeds/:name/:feed" component={FeedPage}>
             <Route path="/" component={EmptyDetail} />
             <Route path="/read/:id" component={DetailPages} />
           </Route>
-          <Route path="*" element={<Navigate href="/feeds/hacker_news" />} />
+          <Route path="*" element={<Navigate href={initialPath} />} />
         </Routes>
       </div>
     </div>

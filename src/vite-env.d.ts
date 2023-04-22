@@ -23,8 +23,20 @@ interface ContentText {
   name: string | null;
 }
 interface ContentLink {
-  type: 'link' | 'youtube' | 'twitter' | 'video';
+  type: 'link';
   url: string;
+  text: string | null;
+}
+
+interface ContentEmbed {
+  type: 'youtube' | 'twitter';
+  url: string;
+}
+
+interface ContentVideo {
+  type: 'video';
+  url: string;
+  poster: string | null;
 }
 
 interface ContentImage {
@@ -39,7 +51,7 @@ interface ContentBlock {
   name: string | null;
 }
 
-declare type ContentType = ContentText | ContentImage | ContentBlock | ContentLink;
+declare type ContentType = ContentText | ContentImage | ContentBlock | ContentLink | ContentVideo | ContentEmbed;
 
 interface FeedCommentType {
   id: IdType;

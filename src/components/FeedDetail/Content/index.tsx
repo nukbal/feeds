@@ -2,6 +2,8 @@ import { Switch, Match, For } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 
 import Link from './Link';
+import Image from './Image';
+import Video from './Video';
 
 interface Props {
   class?: string;
@@ -14,41 +16,28 @@ export default function Content({ data, nested, comment }: Props) {
   return (
     <Switch>
       <Match when={data.type === 'text'}>
-        <Dynamic component={(data as ContentText).name ?? 'span'} class={nested ? '' : 'block pb-1'}>
+        <Dynamic component={(data as ContentText).name ?? 'span'} class={nested ? '' : 'block pb-1 last:pb-0'}>
           {(data as ContentText).text}
         </Dynamic>
       </Match>
       <Match when={data.type === 'block'}>
-        <Dynamic component={(data as ContentBlock).name ?? 'div'}>
+        <Dynamic class="whitespace-pre-wrap break-words pb-1.5 last:pb-0" component={(data as ContentBlock).name ?? 'div'}>
           <For each={(data as ContentBlock).items}>
             {(item) => <Content data={item} nested comment={comment} />}
           </For>
         </Dynamic>
       </Match>
       <Match when={data.type === 'link'}>
-        <Link url={(data as ContentLink).url} />
+        <Link url={(data as ContentLink).url} label={(data as ContentLink).text} />
       </Match>
       <Match when={data.type === 'image'}>
         <figure class="w-full py-2">
-          <img
-            class={comment ? '' : "m-0 mx-auto"}
-            src={(data as ContentImage).url}
-            alt={(data as ContentImage).alt || undefined}
-            style={{ 'max-width': '90%' }}
-          />
+          <Image data={data as ContentImage} comment={comment} />
         </figure>
       </Match>
       <Match when={data.type === 'video'}>
         <figure class="w-full py-2">
-          <video
-            class={comment ? '' : "m-0 mx-auto"}
-            src={(data as ContentLink).url}
-            style={{ 'max-width': '90%' }}
-            controls={!comment}
-            autoplay={comment}
-            muted={comment}
-            loop={comment}
-          />
+          <Video data={data as ContentVideo} comment={comment} />
         </figure>
       </Match>
       <Match when={data.type === 'youtube'}>
@@ -57,7 +46,8 @@ export default function Content({ data, nested, comment }: Props) {
             class={comment ? '' : "m-0 mx-auto"}
             width="560"
             height="315"
-            src={(data as ContentLink).url}
+            src={(data as ContentEmbed).url}
+            loading="lazy"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           />
         </figure>

@@ -69,7 +69,7 @@ pub enum Contents {
   Text { text: String, name: Option<String> },
   Link { url: String, text: Option<String> },
   Image { url: String, alt: Option<String> },
-  Video { url: String },
+  Video { url: String, thumb: Option<String> },
   Youtube { url: String },
   // Twitter { url: String },
 }

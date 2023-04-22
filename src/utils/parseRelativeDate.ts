@@ -11,7 +11,7 @@ export default function parseRelativeDate(date?: string) {
   if (window.isNaN(diffMin)) return date;
 
   // 7d+
-  if (diffMin > 10080) return format(d, 'LLL d hh:mm');
+  if (diffMin > 10080) return format(d, 'M/d');
   // 24h+
   if (diffMin > 1440) return [differenceInDays(now, d), 'd'].join('');
   // 60m+

@@ -1,18 +1,21 @@
-import { createResource, For, Show, createEffect } from 'solid-js';
+import { createResource, For, Show, Switch, Match, createEffect } from 'solid-js';
 import { useParams, useSearchParams } from '@solidjs/router';
 import { invoke } from '@tauri-apps/api';
 import { IoLinkOutline } from 'solid-icons/io';
 
 import CommentItem from 'components/FeedDetail/Comment';
+import FeedDetailEmpty from 'components/FeedDetail/Empty';
 import Content from 'components/FeedDetail/Content';
+import Link from 'components/FeedDetail/Content/Link';
 import Loading from 'components/FeedDetail/Loading';
 import Time from 'components/Atoms/Time';
 import CommentNum from 'components/Atoms/CommentNum';
 import LabelWithIcon from 'components/Atoms/LabelWithIcon';
 import title from 'models/title';
 
-function fetcher([name, id, subId]: string[]) {
-  return invoke<FeedDetailType>('load_detail', { input: { name, id, sub: subId || null } });
+async function fetcher([name, feed, id, subId]: string[]) {
+  const data = await invoke<FeedDetailType>('load_detail', { input: { name, id, feed, sub: subId || null } });
+  return data;
 }
 
 const setTitle = title[1];
@@ -20,7 +23,7 @@ const setTitle = title[1];
 export default function FeedDetailPage() {
   const param = useParams();
   const [search] = useSearchParams();
-  const [data] = createResource(() => [param.feed, param.id, search.subId], fetcher);
+  const [data] = createResource(() => [param.name, param.feed, param.id, search.subId], fetcher);
 
   createEffect(() => {
     const d = data();
@@ -29,8 +32,8 @@ export default function FeedDetailPage() {
   });
 
   return (
-    <>
-      <Show when={!data.loading}>
+    <Switch>
+      <Match when={!data.loading}>
         <header class="pb-4 mb-4">
           <h2 class="text-2xl font-medium mb-1">{data()?.title}</h2>
           <div class="flex items-center text-gray-500 text-xs space-x-1.5 pl-1">
@@ -38,19 +41,18 @@ export default function FeedDetailPage() {
             <Time date={data()?.createdAt} />
           </div>
         </header>
-        <hr class="my-8 mx-32 border-gray-400/20" />
-        <div>
+        <article class="mt-4">
           <Show when={data()?.url}>
             {url => (
               <LabelWithIcon Icon={IoLinkOutline} class="mt-1 pl-1 min-w-0">
-                <a href={url()} target="_blank" class="inline-block truncate underline text-blue-500 max-w-xl">{url()}</a>
+                <Link url={url()} class="inline-block max-w-xl" />
               </LabelWithIcon>
             )}
           </Show>
           <For each={data()?.contents}>
             {(item) => <Content data={item} />}
           </For>
-        </div>
+        </article>
         <hr class="my-8 mx-32 border-gray-400/20" />
         <footer class="mb-8">
           <Show when={data()?.comments.filter((item) => item.isBest).length}>
@@ -67,10 +69,13 @@ export default function FeedDetailPage() {
             </For>
           </ul>
         </footer>
-      </Show>
-      <Show when={data.loading}>
+      </Match>
+      <Match when={data.error}>
+        <FeedDetailEmpty />
+      </Match>
+      <Match when={data.loading}>
         <Loading />
-      </Show>
-    </>
+      </Match>
+    </Switch>
   );
 }

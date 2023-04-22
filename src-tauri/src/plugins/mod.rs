@@ -4,10 +4,12 @@ mod structs;
 mod utils;
 mod hn;
 mod ruli;
+mod fmk;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoadFeedsInput {
   pub name: String,
+  pub feed: String,
   pub page: Option<i32>,
 }
 
@@ -15,12 +17,8 @@ pub struct LoadFeedsInput {
 pub async fn load_feeds(input: LoadFeedsInput) -> Result<structs::LoadFeeds, String> {
   let list = match input.name.as_str() {
     "hacker_news" => hn::load_feed(input.page).await,
-    "ruliweb" => ruli::load_list("best".to_string(), input.page).await,
-    "ruli_best" => ruli::load_list("best_all".to_string(), input.page).await,
-    "ruli_humor" => ruli::load_list("humor".to_string(), input.page).await,
-    "ruli_news_console" => ruli::load_list("news:1001".to_string(), input.page).await,
-    "ruli_news_mobile" => ruli::load_list("news:1004".to_string(), input.page).await,
-    "ruli_news_pc" => ruli::load_list("news:1003".to_string(), input.page).await,
+    "ruliweb" => ruli::load_list(input.feed, input.page).await,
+    "fmk" => fmk::load_list(input.feed, input.page).await,
     _ => Err("invalid input name".into())
   };
 
@@ -30,6 +28,7 @@ pub async fn load_feeds(input: LoadFeedsInput) -> Result<structs::LoadFeeds, Str
 #[derive(Debug, Serialize, Deserialize)]
 pub struct LoadDetailInput {
   pub name: String,
+  pub feed: String,
   pub id: String,
   pub sub: Option<String>,
 }
@@ -38,12 +37,22 @@ pub struct LoadDetailInput {
 pub async fn load_detail(input: LoadDetailInput) -> Result<structs::FeedDetail, String> {
   let data = match input.name.as_str() {
     "hacker_news" => hn::load_detail(input.id).await,
-    "ruliweb" | "ruli_humor" | "ruli_best" => {
-      ruli::load_detail("best".to_string(), input.sub.unwrap_or("300143".to_owned()), input.id).await
+    "ruliweb" => match input.feed.as_str() {
+      "best" | "all_best" | "humor" => {
+        ruli::load_detail("best".to_owned(), input.sub.unwrap_or("300143".to_owned()), input.id).await
+      },
+      "hit_history" => {
+        ruli::load_detail("hobby".to_owned(), input.sub.unwrap_or("300095".to_owned()), input.id).await
+      },
+      feed if feed.contains(":") => {
+        let feed_name = feed.split(":").next().unwrap_or("news");
+        let feed_id = feed.split(":").last().unwrap_or("1001");
+        ruli::load_detail(feed_name.to_owned(), feed_id.to_owned(), input.id).await
+      },
+      feed => ruli::load_detail(feed.to_owned(), input.sub.unwrap_or("300143".to_owned()), input.id).await
     },
-    "ruli_news_console" => ruli::load_detail("news".to_string(), "1001".to_string(), input.id).await,
-    "ruli_news_mobile" => ruli::load_detail("news".to_string(), "1004".to_string(), input.id).await,
-    "ruli_news_pc" => ruli::load_detail("news".to_string(), "1003".to_string(), input.id).await,
+
+    "fmk" => fmk::load_detail(Some(input.feed.to_owned()), input.id).await,
     _ => Err("invalid input name".into())
   };
 

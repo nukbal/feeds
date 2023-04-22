@@ -1,4 +1,3 @@
-// use serde::{Deserialize, Serialize};
 use scraper::{Html, Selector, ElementRef};
 
 use super::structs::{LoadFeeds, FeedItem, FeedDetail, FeedComment, Contents};
@@ -61,7 +60,7 @@ fn parse_list(text: String) -> Vec<FeedItem> {
         },
         thumb: match itm.select(&thumb_sel).next() {
           Some(elem) => {
-            let style_txt = elem.value().attr("style").unwrap();
+            let style_txt = elem.value().attr("style").unwrap_or("");
             let style_idx_start = style_txt.find("url(").unwrap_or(0) + 4;
             let style_idx_end = style_txt.find(");").unwrap_or(0);
             Some(style_txt.chars().skip(style_idx_start).take(style_idx_end - style_idx_start).collect::<String>())
@@ -119,18 +118,8 @@ fn get_text_from_elem(node: Option<scraper::ElementRef>) -> String {
 }
 
 fn parse_date_from_elem(node: Option<scraper::ElementRef>) -> String {
-  let mut text = get_text_from_elem(node);
-
-  if text.contains("날짜") {
-    text = text.replace("날짜", " ").trim().to_string();
-  }
-
-  if text.contains(".") {
-    let arr = text.split(".").collect::<Vec<&str>>();
-    return format!("{}-{}-{}T09:00:00.000Z", arr.get(0).unwrap(), arr.get(1).unwrap(), arr.get(2).unwrap());
-  }
-
-  text
+  let text = get_text_from_elem(node);
+  super::utils::parse_date_string(text)
 }
 
 pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds, String> {
@@ -143,11 +132,14 @@ pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds,
     "best" => {
       format!("{}/best/selection?m=all&t=now&page={}", base_path, page_num).to_string()
     },
-    "best_all" => {
+    "all_best" => {
       format!("{}/best/all?m=all&t=now&page={}", base_path, page_num).to_string()
     },
     "humor" => {
       format!("{}/best/humor?m=all&t=now&page={}", base_path, page_num).to_string()
+    },
+    "hit_history" => {
+      format!("{}/best/hit_history?m=all&t=now&page={}", base_path, page_num).to_string()
     },
     board_id if board_id.starts_with("news:") => {
       let id = board_id.chars().skip(5).collect::<String>();
@@ -174,7 +166,8 @@ pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds,
   })
 }
 
-// 게시글 불러오기
+
+/** 댓글 parse */
 fn parse_comment(node: ElementRef) -> FeedComment {
   let cmt_name_sel = Selector::parse("a.nick_link").unwrap();
   let cmt_text_sel = Selector::parse("div.text_wrapper span.text").unwrap();
@@ -183,6 +176,7 @@ fn parse_comment(node: ElementRef) -> FeedComment {
   let cmt_best_sel = Selector::parse("div.text_wrapper span.icon_best").unwrap();
   let cmt_like_sel = Selector::parse("button.btn_like span.num").unwrap();
   let cmt_dislike_sel = Selector::parse("button.btn_dislike span.num").unwrap();
+  let date_sel = Selector::parse("span.time").unwrap();
 
   let mut contents = vec![];
 
@@ -195,17 +189,41 @@ fn parse_comment(node: ElementRef) -> FeedComment {
       });
     }
     if tag_name == "video" {
-      contents.push(Contents::Video {
-        url: img_node.value().attr("src").unwrap().to_owned(),
-      });
+      let url = img_node.value().attr("src").unwrap().to_owned();
+      if url.ends_with(".mp4?webp") {
+        contents.push(Contents::Image { url: url.replace(".mp4?webp", ".webp"), alt: None });
+      } else {
+        contents.push(Contents::Video { url, thumb: None });
+      }
     }
   }
 
   if let Some(text_node) = node.select(&cmt_text_sel).next() {
-    contents.push(Contents::Text {
-      text: text_node.text().collect(),
-      name: Some("p".to_owned()),
+    let mut text = "".to_owned();
+
+    text_node.text().for_each(|txt| {
+      if txt.contains("https://") {
+        if txt.contains("https://www.youtube.com/") {
+          let idx = txt.rfind("v=").unwrap_or(0) + 2;
+          let id = &txt[idx ..];
+          contents.push(Contents::Youtube {
+            url: format!("https://www.youtube.com/embed/{}", id),
+          });
+        } else if txt.contains("https://youtu.be/") {
+          let idx = txt.rfind("/").unwrap_or(0) + 1;
+          let id = &txt[idx ..];
+          contents.push(Contents::Youtube {
+            url: format!("https://www.youtube.com/embed/{}", id),
+          });
+        } else {
+          contents.push(Contents::Link { url: txt.to_owned(), text: None });
+        }
+      } else {
+        text.push_str(txt);
+      }
     });
+
+    contents.push(Contents::Text { text, name: Some("p".to_owned()) });
   }
 
   let class = node.value().attr("class").unwrap_or("");
@@ -233,17 +251,30 @@ fn parse_comment(node: ElementRef) -> FeedComment {
     reply_to: if let Some(reply_node) = node.select(&cmt_reply_sel).next() {
       Some(reply_node.text().collect())
     } else { None },
+    created_at: match node.select(&date_sel).next() {
+      Some(date_node) => super::utils::parse_date_string(date_node.text().collect()),
+      _ => "".to_owned(),
+    },
     ..Default::default()
   }
 }
 
+/** 게시글 불러오기 */
 pub async fn load_detail(board_type: String, board_id: String, id: String) -> Result<FeedDetail, String> {
   let target_path = format!("https://bbs.ruliweb.com/{}/board/{}/read/{}", board_type, board_id, &id);
 
-  let html = reqwest::get(target_path.clone())
-    .await.expect(format!("failed to request {}", target_path.clone()).as_str().into())
-    .text()
-    .await.expect("failed to get response text".into());
+  let html = match reqwest::get(target_path.clone()).await {
+    Ok(res) => match res.text().await {
+      Ok(txt) => txt,
+      _ => {
+        return Err("failed to get response text".to_owned());
+      },
+    },
+    Err(err) => match err.status() {
+      Some(reqwest::StatusCode::NOT_FOUND) => { return Err("404".to_owned()); },
+      _ => { return Err(format!("failed to request {}", target_path.clone()).as_str().into()); },
+    },
+  };
 
   let content_idx_start = html.find("<!-- board_main start -->").unwrap_or(0);
   let content_idx_end = html.find("<!-- board_main end -->").unwrap_or(0);

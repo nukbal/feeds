@@ -1,56 +1,8 @@
+use chrono::{TimeZone, Datelike};
 use scraper::{Html, Node};
 use ego_tree::NodeRef;
 
 use super::structs::{Contents};
-
-// fn convert_node(node: &Rc<Node>) -> Contents {
-//   match node.data {
-//     NodeData::Element { ref name, ref attrs, .. } => {
-//       let name_str: String = name.local.to_string();
-//       println!("{:?}", name_str);
-//       match name_str.as_ref() {
-//         "div" => Contents::Block {
-//           name: name_str,
-//           items: node.children.borrow().iter().map(convert_node).collect(),
-//         },
-//         "p" => {
-//           let block_items: Vec<Contents> = node.children.borrow().iter().map(convert_node).collect();
-//           let mut json_items = vec![];
-//           for item in block_items {
-//             match item {
-//               Contents::Text { text, .. } if text.trim().is_empty() => (),
-//               Contents::Block { items, .. } if items.len() == 0 => (),
-//               Contents::Image { url, .. } => json_items.push(Contents::Image { url, alt: None }),
-//               _ => json_items.push(item),
-//             }
-//           }
-//           Contents::Block { name: name_str, items: json_items }
-//         }
-//         "a" => {
-//           let children = node.children.borrow();
-//           let items = children.iter().map(convert_node).collect();
-//           Contents::Block { name: name_str, items }
-//         },
-//         "b" | "i" | "u" | "strong" | "span" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "li" | "ol" | "ul" => {
-//           let items = node.children.borrow().iter().map(convert_node).collect();
-//           Contents::Block { name: name_str, items }
-//         }
-//         "img" => {
-//           let mut url = "".to_string();
-//           for attr in attrs.borrow().iter() {
-//             if attr.name.local.to_string() == "src" {
-//               url = attr.value.to_string();
-//               break;
-//             }
-//           }
-//           Contents::Image { url, alt: Some(name_str) }
-//         }
-//         _ => Contents::Text { name: Some(name_str), text: "".to_string() },
-//       }
-//     }
-//     _ => Contents::Text { name: None, text: "".to_string() },
-//   }
-// }
 
 pub fn parse_num_from_elem(node: scraper::ElementRef) -> Option<i32> {
   let mut text = node.text().collect::<String>();
@@ -65,7 +17,6 @@ pub fn parse_num_from_elem(node: scraper::ElementRef) -> Option<i32> {
     }
   }
 }
-
 
 fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
   match elem.value() {
@@ -82,11 +33,12 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
 
           for item in block_items {
             match item {
-              Contents::Text { text, .. } if text.trim().is_empty() => (),
+              // Contents::Text { text, .. } if text.trim().is_empty() => (),
               Contents::Block { items, .. } if items.len() == 0 => (),
               Contents::Text { text, .. } if size == 1 => {
                 return Some(Contents::Text { text, name: Some(tag_name.to_owned()) });
               },
+              Contents::Link { .. } if size == 1 => json_items.push(item),
               _ if size == 1 => {
                 return Some(item.to_owned());
               },
@@ -119,21 +71,63 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
             item => Some(item.to_owned()),
           }
         }
-        "img" => {
-          let href = node.attr("src");
-          let alt = node.attr("alt");
-          Some(Contents::Image {
-            url: href.unwrap().to_string(),
-            alt: if alt.is_some() { Some(alt.unwrap().to_owned()) } else { None },
-          })
+        "img" => match node.attr("data-original") {
+          Some(lazy_node) => {
+            let alt = node.attr("alt");
+            Some(Contents::Image {
+              url: lazy_node.to_owned(),
+              alt: if alt.is_some() { Some(alt.unwrap().to_owned()) } else { None },
+            })
+          },
+          _ => {
+            let href = node.attr("src");
+            let alt = node.attr("alt");
+            Some(Contents::Image {
+              url: href.unwrap().to_owned(),
+              alt: if alt.is_some() { Some(alt.unwrap().to_owned()) } else { None },
+            })
+          },
         }
         "video" => {
           let href = node.attr("src");
+          let poster = node.attr("poster");
+          let url = match href {
+            Some(url) => Some(url.to_owned()),
+            _ => match elem.first_child() {
+              Some(source_node) => match source_node.value() {
+                scraper::Node::Element(sn) => match sn.attr("data-src") {
+                  Some(source_url) => Some(source_url.to_owned()),
+                  _ => None,
+                }
+                _ => None,
+              },
+              _ => None,
+            },
+          };
+
+          if url.is_none() {
+            return None;
+          }
+
+          let url_text = url.unwrap();
+          // 루리웹 한정으로, video로 표시하지만, 사실 파일은 webp밖에 존재하지 않으므로 fallback을 미리 해둠
+          if url_text.ends_with(".mp4?webp") {
+            return Some(Contents::Image {
+              url: url_text.replace(".mp4?webp", "webp"),
+              alt: None,
+            });
+          }
+
           Some(Contents::Video {
-            url: href.unwrap().to_string(),
+            url: url_text,
+            thumb: match poster {
+              Some(thumb) => Some(thumb.to_owned()),
+              _ => None,
+            },
           })
         }
-        "br" | "hr" | "input" | "button" => None,
+        // "br" => Some(Contents::Text { text: "\n".to_owned(), name: None }),
+        "br" | "hr" | "input" | "button" | "meta" => None,
         "iframe" => {
           let url = node.attr("src").unwrap_or("");
           if url.contains("https://youtu.be") || url.contains("https://www.youtube.com/embed") {
@@ -164,9 +158,16 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
       }
     },
     scraper::Node::Text(txt) => {
-      let trimed_txt = txt.trim();
+      let mut trimed_txt = txt.trim().to_owned();
+      if let Some(next_node) = elem.next_sibling() {
+        if let Some(next_elem) = next_node.value().as_element() {
+          if next_elem.name() == "br" {
+            trimed_txt.push_str("\n");
+          }
+        }
+      }
       if trimed_txt.len() > 0 {
-        Some(Contents::Text { name: None, text: trimed_txt.to_owned() })
+        Some(Contents::Text { name: None, text: trimed_txt })
       } else {
         None
       }
@@ -201,6 +202,66 @@ pub fn parse_html(text: Option<String>) -> Vec<Contents> {
   }
 
   results
+}
+
+
+pub fn parse_date_string(str: String) -> String {
+  let mut text = str.clone();
+  let now = chrono::Local::now();
+
+  if text.contains("날짜") {
+    text = text.replace("날짜", " ").trim().to_string();
+  }
+
+  if text.contains("초") {
+    let idx = text.rfind("초").unwrap_or(text.len());
+    let unit = (&text[..idx]).trim().parse::<i64>().unwrap_or(0);
+    let target_date = now - chrono::Duration::seconds(unit);
+    return target_date.to_rfc3339();
+  }
+
+  if text.contains("분") {
+    let idx = text.rfind("분").unwrap_or(text.len());
+    let unit = (&text[..idx]).trim().parse::<i64>().unwrap_or(0);
+    let target_date = now - chrono::Duration::minutes(unit);
+    return target_date.to_rfc3339();
+  }
+
+  if text.contains("시간") {
+    let idx = text.rfind("시간").unwrap_or(text.len());
+    let unit = (&text[..idx]).trim().parse::<i64>().unwrap_or(0);
+    let target_date = now - chrono::Duration::hours(unit);
+    return target_date.to_rfc3339();
+  }
+
+  // yyyy.mm.dd (hh:mm:ss)
+  if text.contains(".") && text.contains(":") && text.contains("(") {
+    let naive = chrono::NaiveDateTime::parse_from_str(&text, "%Y.%m.%d (%H:%M:%S)").unwrap();
+    return chrono::Local.from_local_datetime(&naive).unwrap().to_rfc3339();
+  }
+
+  // yyyy.mm.dd hh:mm or yy.mm.dd hh:mm
+  if text.contains(".") && text.contains(":") {
+    if text.find(".") == Some(2) {
+      text = format!("20{}", text).trim().to_owned();
+    }
+    let naive = chrono::NaiveDateTime::parse_from_str(&text, "%Y.%m.%d %H:%M").unwrap();
+    return chrono::Local.from_local_datetime(&naive).unwrap().to_rfc3339();
+  }
+
+  // yyyy.mm.dd
+  if text.contains(".") {
+    return chrono::NaiveDate::parse_from_str(&text, "%Y.%m.%d").unwrap().to_string();
+  }
+
+  // hh:mm
+  if text.contains(":") {
+    let added_text = format!("{}-{}-{} {}", now.year(), now.month(), now.day(), text);
+    let naive = chrono::NaiveDateTime::parse_from_str(&added_text, "%Y-%m-%d %H:%M").unwrap();
+    return chrono::Local.from_local_datetime(&naive).unwrap().to_rfc3339();
+  }
+
+  text
 }
 
 #[cfg(test)]

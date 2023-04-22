@@ -23,7 +23,7 @@
     "@tauri-apps/cli": "^1.2.3",
     "@types/node": "^18.15.11",
     "typescript": "^5.0.4",
-    "vite": "^4.2.1",
+    "vite": "^4.3.1",
     "vite-plugin-solid": "^2.7.0",
     "vite-tsconfig-paths": "^4.2.0"
   }
