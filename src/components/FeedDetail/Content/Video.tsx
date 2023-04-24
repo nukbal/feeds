@@ -1,6 +1,8 @@
 import { createSignal, Switch, Match } from 'solid-js';
 import { IoVideocamOffOutline } from 'solid-icons/io'
 
+import Image from './Image';
+
 interface Props {
   data: ContentVideo;
   comment?: boolean;
@@ -15,6 +17,8 @@ export default function Video({ data, comment }: Props) {
     return `m-0 mx-auto ${loadingClass}`;
   };
 
+  const isAutoPlayable = comment || data.url.endsWith('gif');
+
   return (
     <Switch>
       <Match when={loading() !== null}>
@@ -26,14 +30,19 @@ export default function Video({ data, comment }: Props) {
             'min-width': loading() ? '32rem' : undefined,
             'min-height': loading() ? '18rem' : undefined,
           }}
+          poster={data.thumb || undefined}
           onLoad={() => setLoading(false)}
+          onLoadStart={() => setLoading(false)}
           onError={() => setLoading(null)}
-          controls={!comment && !data.url.endsWith('gif')}
-          autoplay={comment || data.url.endsWith('gif')}
-          muted={comment || data.url.endsWith('gif')}
-          loop={comment || data.url.endsWith('gif')}
+          controls={!isAutoPlayable}
+          autoplay={isAutoPlayable}
+          muted={isAutoPlayable}
+          loop={isAutoPlayable}
           preload="none"
         />
+      </Match>
+      <Match when={loading() === null && data.url.endsWith('mp4?gif')}>
+        <Image data={{ url: data.url.replace('.mp4?gif', '.gif'), alt: null, type: 'image' }} comment={comment} />
       </Match>
       <Match when={loading() === null}>
         <div class={`h-64 w-96 flex flex-col items-center justify-center rounded bg-gray-400/20 text-red-400 ${comment ? '' : 'mx-auto'}`}>

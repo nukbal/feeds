@@ -31,17 +31,17 @@ export default function Content({ data, nested, comment }: Props) {
         <Link url={(data as ContentLink).url} label={(data as ContentLink).text} />
       </Match>
       <Match when={data.type === 'image'}>
-        <figure class="w-full py-2">
+        <figure class="w-full py-2 select-none">
           <Image data={data as ContentImage} comment={comment} />
         </figure>
       </Match>
       <Match when={data.type === 'video'}>
-        <figure class="w-full py-2">
+        <figure class="w-full py-2 select-none">
           <Video data={data as ContentVideo} comment={comment} />
         </figure>
       </Match>
       <Match when={data.type === 'youtube'}>
-        <figure class="w-full py-2">
+        <figure class="w-full py-2 select-none">
           <iframe
             class={comment ? '' : "m-0 mx-auto"}
             width="560"

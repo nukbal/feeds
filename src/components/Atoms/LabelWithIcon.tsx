@@ -2,15 +2,16 @@ import { Dynamic } from 'solid-js/web';
 import { IconTypes } from 'solid-icons';
 
 interface Props {
+  ref?: any;
   class?: string;
   Icon: IconTypes;
   size?: number;
   children?: any;
 }
 
-export default function Time(p: Props) {
+export default function LabelWithIcon(p: Props) {
   return (
-    <div class={['inline-flex items-center', p.class].join(' ')}>
+    <div ref={p.ref} class={['inline-flex items-center', p.class].join(' ')}>
       <i class="pb-0.5 shrink-0">
         <Dynamic component={p.Icon} size={p.size || '1em'} />
       </i>

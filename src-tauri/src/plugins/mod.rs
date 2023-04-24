@@ -52,7 +52,7 @@ pub async fn load_detail(input: LoadDetailInput) -> Result<structs::FeedDetail, 
       feed => ruli::load_detail(feed.to_owned(), input.sub.unwrap_or("300143".to_owned()), input.id).await
     },
 
-    "fmk" => fmk::load_detail(Some(input.feed.to_owned()), input.id).await,
+    "fmk" => fmk::load_detail(input.id).await,
     _ => Err("invalid input name".into())
   };
 

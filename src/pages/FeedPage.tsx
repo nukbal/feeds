@@ -66,6 +66,15 @@ export default function ListOutlet() {
     ref?.scrollTo({ top: 0 });
   };
 
+  const handleWidthChange = (delta: number) => {
+    setSize((prev) => {
+      const nextVal = prev + delta;
+      if (nextVal >= 450) return 450;
+      if (nextVal <= 300) return 300;
+      return nextVal;
+    });
+  };
+
   return (
     <>
       <div class="relative" style={{ width: px(size()), 'min-width': px(size()) }}>
@@ -77,7 +86,7 @@ export default function ListOutlet() {
           page={page()}
           onRequest={handleRequest}
         />
-        <ResizeBorder onSizeChange={setSize} max={450} min={300} />
+        <ResizeBorder onSizeChange={handleWidthChange} />
       </div>
       <FeedDetail ref={detailRef}>
         <Outlet />

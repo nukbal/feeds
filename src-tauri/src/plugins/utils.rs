@@ -1,4 +1,4 @@
-use chrono::{TimeZone, Datelike};
+use chrono::{TimeZone, Datelike, Timelike};
 use scraper::{Html, Node};
 use ego_tree::NodeRef;
 
@@ -24,6 +24,41 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
       let tag_name = node.name();
       match tag_name {
         "p" | "div" | "blockquote" => {
+
+          // is div wrapped as videoObject for video player (with metadata)
+          if let Some(item_prop) = node.attr("itemprop") {
+            if item_prop == "VideoObject" && elem.has_children() {
+              let vid_elem = elem.children().find(|child| child.value().is_element()).unwrap();
+              match vid_elem.value() {
+                scraper::Node::Element(video) => {
+
+                  let thumb = match video.attr("poster") {
+                    Some(poster) => Some(poster.to_owned()),
+                    _ => None,
+                  };
+
+                  match video.attr("src") {
+                    Some(vid_url) => {
+                      return Some(Contents::Video { url: vid_url.to_owned(), thumb });
+                    },
+                    _ if vid_elem.has_children() => {
+                      if let Some(source_node) = vid_elem.children().find(|child| child.value().is_element()) {
+                        if let Some(vid_url) = source_node.value().as_element().unwrap().attr("src") {
+                          return Some(Contents::Video { url: vid_url.to_owned(), thumb });
+                        }
+                        if let Some(vid_url) = source_node.value().as_element().unwrap().attr("data-src") {
+                          return Some(Contents::Video { url: vid_url.to_owned(), thumb });
+                        }
+                      }
+                    },
+                    _ => {},
+                  }
+                },
+                _ => {},
+              }
+            }
+          }
+
           let block_items: Vec<Contents> = elem.children().map(convert_node).flatten().collect();
 
           let mut json_items = vec![];
@@ -113,7 +148,7 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
           // 루리웹 한정으로, video로 표시하지만, 사실 파일은 webp밖에 존재하지 않으므로 fallback을 미리 해둠
           if url_text.ends_with(".mp4?webp") {
             return Some(Contents::Image {
-              url: url_text.replace(".mp4?webp", "webp"),
+              url: url_text.replace(".mp4?webp", ".webp"),
               alt: None,
             });
           }
@@ -147,8 +182,8 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
                 if trimed_txt.len() == 0 { return None; }
                 return Some(Contents::Text { text: trimed_txt.to_owned(), name: Some(tag_name.to_owned()) });
               },
-              _ => {
-                return None;
+              item => {
+                return Some(item.to_owned());
               },
             };
           }
@@ -251,13 +286,19 @@ pub fn parse_date_string(str: String) -> String {
 
   // yyyy.mm.dd
   if text.contains(".") {
-    return chrono::NaiveDate::parse_from_str(&text, "%Y.%m.%d").unwrap().to_string();
+    let added_text = format!("{} 00:00:00", text.trim()).to_string();
+    let naive = chrono::NaiveDateTime::parse_from_str(&added_text, "%Y.%m.%d %H:%M:%S").unwrap();
+    return chrono::Local.from_local_datetime(&naive).unwrap().to_rfc3339();
   }
 
   // hh:mm
   if text.contains(":") {
-    let added_text = format!("{}-{}-{} {}", now.year(), now.month(), now.day(), text);
-    let naive = chrono::NaiveDateTime::parse_from_str(&added_text, "%Y-%m-%d %H:%M").unwrap();
+    let added_text = format!("{}-{}-{} {}", now.year(), now.month(), now.day(), text).trim().to_string();
+    let mut naive = chrono::NaiveDateTime::parse_from_str(&added_text, "%Y-%m-%d %H:%M").unwrap();
+    if naive.hour() > now.hour() || (naive.hour() == now.hour() && naive.minute() > now.minute()) {
+      naive = naive - chrono::Duration::days(1);
+    }
+
     return chrono::Local.from_local_datetime(&naive).unwrap().to_rfc3339();
   }
 
@@ -284,12 +325,14 @@ mod tests {
       </p>
     ".to_string()));
 
-    // res.iter().for_each(|item| { println!("{:?}", item); });
+    // res.iter().for_each(|row| {
+    //   match row {
+    //     Contents::Block { items, name } => items.iter().for_each(|c| { println!("{} => {:?}", name, c); }),
+    //     _ => { println!("{:?}", row); },
+    //   }
+    // });
 
-    // assert_eq!(res.len(), 3, "3 paragraph founds");
-
-    // println!("{:?}", serde_json::to_string(&res));
-    // assert_eq!(res.get(1).unwrap(), 4);
+    assert_eq!(res.len(), 3, "3 paragraph founds");
   }
 
   #[test]
@@ -308,14 +351,6 @@ mod tests {
       </div>
     ".to_string()));
 
-    // println!("{:?}", res);
-    res.iter().for_each(|row| {
-      match row {
-        Contents::Block { items, name } => items.iter().for_each(|c| { println!("{} => {:?}", name, c); }),
-        _ => { println!("{:?}", row); },
-      }
-    });
-
-    // assert_eq!(res.len(), 5, "5 blocks founds");
+    assert_eq!(res.len(), 5, "5 blocks founds");
   }
 }

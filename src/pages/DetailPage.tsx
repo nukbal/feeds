@@ -23,7 +23,7 @@ const setTitle = title[1];
 export default function FeedDetailPage() {
   const param = useParams();
   const [search] = useSearchParams();
-  const [data] = createResource(() => [param.name, param.feed, param.id, search.subId], fetcher);
+  const [data] = createResource(() => [search.name || param.name, search.feed || param.feed, param.id, search.subId], fetcher);
 
   createEffect(() => {
     const d = data();
@@ -36,9 +36,9 @@ export default function FeedDetailPage() {
       <Match when={!data.loading}>
         <header class="pb-4 mb-4">
           <h2 class="text-2xl font-medium mb-1">{data()?.title}</h2>
-          <div class="flex items-center text-gray-500 text-xs space-x-1.5 pl-1">
+          <div class="flex items-center text-gray-500 text-xs space-x-1.5 pl-1 select-none">
             <span class="">{data()?.author ?? '-'}</span>
-            <Time date={data()?.createdAt} />
+            <Time date={data()?.createdAt} full />
           </div>
         </header>
         <article class="mt-4">

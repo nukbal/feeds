@@ -1,6 +1,13 @@
 /// <reference types="vite/client" />
 
 type IdType = string;
+type SupportServices = 'hacker_news' | 'ruliweb' | 'fmk';
+
+interface FeedLinkItem {
+  id: string;
+  label: string;
+  removable?: boolean;
+}
 
 interface FeedItemType {
   id: IdType;
@@ -36,7 +43,7 @@ interface ContentEmbed {
 interface ContentVideo {
   type: 'video';
   url: string;
-  poster: string | null;
+  thumb: string | null;
 }
 
 interface ContentImage {

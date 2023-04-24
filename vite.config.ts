@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import solidjs from 'vite-plugin-solid';
 import viteTsconfigPaths from 'vite-tsconfig-paths';
+// import { visualizer } from 'rollup-plugin-visualizer';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -24,5 +25,6 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    // rollupOptions: { plugins: [visualizer()] },
   },
 });

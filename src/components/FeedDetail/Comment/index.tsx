@@ -4,6 +4,7 @@ import { FaSolidFire } from 'solid-icons/fa';
 
 import Time from 'components/Atoms/Time';
 import LabelWithIcon from 'components/Atoms/LabelWithIcon';
+import Tooltip from 'components/Tooltip';
 
 import Content from '../Content';
 
@@ -29,20 +30,41 @@ export default function CommentItem({ data }: Props) {
   }
 
   return (
-    <li class="p-2 text-sm select-none" style={{ 'padding-left': `${data.depth * 0.625 + 0.5}rem` }}>
+    <li class="p-2 text-sm" style={{ 'padding-left': `${data.depth * 0.625 + 0.5}rem` }}>
       <div class="flex pb-2 items-center justify-between select-none">
         <div class="flex items-center">
           <Show when={num}>
-            <LabelWithIcon
-              Icon={Icon}
-              class={`mr-2 text-${num > 0 ? 'red' : 'violet'}-500`}
-              size={12}
+            <Tooltip
+              label={
+                <div class="flex items-center space-x-2">
+                  <LabelWithIcon Icon={IoCaretUpOutline} class="text-sky-500">
+                    <span>{data.up}</span>
+                  </LabelWithIcon>
+                  <Show when={data.down !== null}>
+                    <LabelWithIcon Icon={IoCaretDownOutline} class="text-red-500">
+                      <span>{data.down}</span>
+                    </LabelWithIcon>
+                  </Show>
+                </div>
+              }
+              placement="top-start"
             >
-              <span title={`${data.up ?? '-'} (${data.down ?? '-'})`}>{num}</span>
-            </LabelWithIcon>
+              <LabelWithIcon
+                Icon={Icon}
+                class={`mr-2 text-${num > 0 ? 'sky' : 'red'}-500 cursor-default`}
+                size={12}
+              >
+                {num}
+              </LabelWithIcon>
+            </Tooltip>
           </Show>
           <Show when={data.isBest && !num}>
-            <span class="ml-2 text-red-500"><FaSolidFire /></span>
+            <span class="ml-2 text-sky-500"><FaSolidFire /></span>
+          </Show>
+          <Show when={data.avatar}>
+            <figure class="inline-block">
+              <img class="w-16 h-16 rounded-sm" src={data.avatar!} />
+            </figure>
           </Show>
           <h5 class="font-medium">{data.author}</h5>
           <Show when={data.replyTo}>

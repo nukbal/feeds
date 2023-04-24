@@ -1,4 +1,5 @@
-import { Show } from 'solid-js';
+import { Show, Switch, Match } from 'solid-js';
+import { IoImageOutline } from 'solid-icons/io'
 
 import Time from 'components/Atoms/Time';
 import CommentNum from 'components/Atoms/CommentNum';
@@ -17,7 +18,16 @@ export default function FeedItem({ item }: Props) {
           <figure
             class="absolute left-4 top-4 h-16 w-16 bg-stone-700 bg-cover bg-center rounded"
           >
-            <img src={thumb()} class="object-cover h-16 w-16 rounded" loading="lazy" />
+            <Switch>
+              <Match when={thumb() !== 'None'}>
+                <img src={thumb()} class="object-cover h-16 w-16 rounded" loading="lazy" />
+              </Match>
+              <Match when={thumb() === 'None'}>
+                <div class="flex items-center justify-center h-16 w-16 rounded">
+                  <IoImageOutline size="32" />
+                </div>
+              </Match>
+            </Switch>
           </figure>
         )}
       </Show>

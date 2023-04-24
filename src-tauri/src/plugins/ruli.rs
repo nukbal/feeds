@@ -42,10 +42,14 @@ fn parse_list(text: String) -> Vec<FeedItem> {
         },
         sub_id: match itm.select(&cat_sel).next() {
           Some(elem) => {
-            let target_url = elem.value().attr("href").unwrap_or("");
-            let url_start_idx = target_url.rfind("/").unwrap_or(0) + 1;
-            let url_end_idx = target_url.rfind("?").unwrap_or(target_url.len());
-            Some((&target_url[url_start_idx..url_end_idx]).to_string())
+            match elem.value().attr("href") {
+              Some(target_url) => {
+                let url_start_idx = target_url.rfind("/").unwrap_or(0) + 1;
+                let url_end_idx = target_url.rfind("?").unwrap_or(target_url.len());
+                Some((&target_url[url_start_idx..url_end_idx]).to_string())
+              },
+              _ => None,
+            }
           },
           _ => None,
         },
@@ -63,7 +67,12 @@ fn parse_list(text: String) -> Vec<FeedItem> {
             let style_txt = elem.value().attr("style").unwrap_or("");
             let style_idx_start = style_txt.find("url(").unwrap_or(0) + 4;
             let style_idx_end = style_txt.find(");").unwrap_or(0);
-            Some(style_txt.chars().skip(style_idx_start).take(style_idx_end - style_idx_start).collect::<String>())
+            let thumb_url = style_txt.chars().skip(style_idx_start).take(style_idx_end - style_idx_start).collect::<String>();
+            if thumb_url.contains("ruliweb_thumbnail_empty") {
+              Some("None".to_owned())
+            } else {
+              Some(thumb_url)
+            }
           },
           _ => None,
         },
@@ -141,9 +150,10 @@ pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds,
     "hit_history" => {
       format!("{}/best/hit_history?m=all&t=now&page={}", base_path, page_num).to_string()
     },
-    board_id if board_id.starts_with("news:") => {
-      let id = board_id.chars().skip(5).collect::<String>();
-      format!("{}/news/board/{}?view=default&page={}", base_path, id, page_num).to_string()
+    board_id if board_id.contains(":") => {
+      let feed_name = board_id.split(":").next().unwrap_or("news");
+      let feed_id = board_id.split(":").last().unwrap_or("1001");
+      format!("{}/{}/board/{}?view=default&page={}", base_path, feed_name, feed_id, page_num).to_string()
     },
     _ => {
       return Err("invalid board info".to_string());
@@ -176,6 +186,7 @@ fn parse_comment(node: ElementRef) -> FeedComment {
   let cmt_best_sel = Selector::parse("div.text_wrapper span.icon_best").unwrap();
   let cmt_like_sel = Selector::parse("button.btn_like span.num").unwrap();
   let cmt_dislike_sel = Selector::parse("button.btn_dislike span.num").unwrap();
+  let avatar_sel = Selector::parse("img.profile_image_m").unwrap();
   let date_sel = Selector::parse("span.time").unwrap();
 
   let mut contents = vec![];
@@ -239,18 +250,28 @@ fn parse_comment(node: ElementRef) -> FeedComment {
   FeedComment {
     id: node.value().attr("id").unwrap_or("id").to_owned(),
     author: author.unwrap().text().collect(),
+    avatar: match node.select(&avatar_sel).next() {
+      Some(avatar_node) => match avatar_node.value().attr("src") {
+        Some(avatar_url) => Some(avatar_url.to_owned()),
+        _ => None,
+      },
+      _ => None,
+    },
     contents,
     is_best: node.select(&cmt_best_sel).next().is_some(),
-    up: if let Some(up_node) = node.select(&cmt_like_sel).next() {
-      parse_num_from_elem(up_node)
-    } else { None },
-    down: if let Some(down_node) = node.select(&cmt_dislike_sel).next() {
-      parse_num_from_elem(down_node)
-    } else { None },
+    up: match node.select(&cmt_like_sel).next() {
+      Some(up_node) => parse_num_from_elem(up_node),
+      _ => None,
+    },
+    down: match node.select(&cmt_dislike_sel).next() {
+      Some(down_node) => parse_num_from_elem(down_node),
+      _ => None,
+    },
     depth: if class.contains("child") { 1 } else { 0 },
-    reply_to: if let Some(reply_node) = node.select(&cmt_reply_sel).next() {
-      Some(reply_node.text().collect())
-    } else { None },
+    reply_to: match node.select(&cmt_reply_sel).next() {
+      Some(reply_node) => Some(reply_node.text().collect()),
+      _ => None,
+    },
     created_at: match node.select(&date_sel).next() {
       Some(date_node) => super::utils::parse_date_string(date_node.text().collect()),
       _ => "".to_owned(),
@@ -291,6 +312,7 @@ pub async fn load_detail(board_type: String, board_id: String, id: String) -> Re
   let title_sel = Selector::parse("span.subject_inner_text").unwrap();
   let author_sel = Selector::parse("div.user_info a.nick").unwrap();
   let date_sel = Selector::parse("span[itemprop=datePublished]").unwrap();
+  let source_sel = Selector::parse("div.source_url a").unwrap();
 
   let cmt_idx_start = html.find("<!-- board_bottom start -->").unwrap_or(0);
   let cmt_idx_end = html.find("<!-- board_bottom end -->").unwrap_or(0);
@@ -304,6 +326,10 @@ pub async fn load_detail(board_type: String, board_id: String, id: String) -> Re
     id: id,
     title: get_text_from_elem(content_dom.select(&title_sel).next()),
     author: get_text_from_elem(content_dom.select(&author_sel).next()),
+    url: match content_dom.select(&source_sel).next() {
+      Some(source_node) => Some(get_text_from_elem(Some(source_node))),
+      _ => None,
+    },
     contents,
     comments,
     created_at: parse_date_from_elem(content_dom.select(&date_sel).next()),
@@ -332,7 +358,7 @@ mod tests {
               </a>
             </div>
             <div class=\"article_info\">
-              <a title=\"유머 게시판\">유머 게시판</a>
+              <a href=\"https://article-category-path/999999?\" title=\"유머 게시판\">유머 게시판</a>
               <a class=\"nick\">작성자123</a>
               <span class=\"recomd\">추천<strong>20</strong></span>
               <span class=\"hit\">조회<strong>123456</strong></span>
@@ -361,11 +387,11 @@ mod tests {
       </tbody></table></div><div id=\"best_bottom\">footer</div></div></div></body></html>
     ".to_string());
 
-    // list.into_iter().for_each(|c| { println!("{:?}", c); });
-
     assert_eq!(list.len(), 2, "list length");
     assert_eq!(list.get(0).unwrap().id, "11111", "article id on first item");
+    assert_eq!(list.get(0).unwrap().sub_id, Some("999999".to_owned()), "sub id is provided when category is exists");
     assert_eq!(list.get(0).unwrap().title, "title here", "article title on first item");
+    assert_eq!(list.get(1).unwrap().created_at, "2023-04-14T00:00:00+09:00", "read date string");
   }
 
   #[test]

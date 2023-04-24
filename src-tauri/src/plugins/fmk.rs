@@ -28,18 +28,21 @@ fn parse_list(text: String) -> Vec<FeedItem> {
     let title_node = item.select(&title_sel).next().unwrap();
 
     list.push(FeedItem {
-      id: if let Some(id_node) = title_node.value().attr("href") {
-        let idx = if id_node.contains("document_srl") {
-          id_node.rfind("document_srl=").unwrap_or(0) + 13
-        } else {
-          id_node.rfind("/").unwrap_or(0) + 1
-        };
-        (&id_node[idx..]).to_string()
-      } else { "-".to_owned() },
+      id: match title_node.value().attr("href") {
+        Some(id_node) => {
+          let idx = if id_node.contains("document_srl") {
+            id_node.rfind("document_srl=").unwrap_or(0) + 13
+          } else {
+            id_node.rfind("/").unwrap_or(0) + 1
+          };
+          (&id_node[idx..]).to_string()
+        },
+        _ => "-".to_owned(),
+      },
       thumb: match item.select(&thumb_sel).next() {
         Some(thumb_node) => match thumb_node.value().attr("data-original") {
           Some(thumb_url) => Some(thumb_url.to_owned()),
-          _ => None,
+          _ => Some("None".to_owned()),
         },
         _ => None,
       },
@@ -70,7 +73,10 @@ fn parse_list(text: String) -> Vec<FeedItem> {
         },
         None => "-".to_owned(),
       },
-      points: parse_num_from_elem(item.select(&point_sel).next().unwrap()),
+      points: match item.select(&point_sel).next() {
+        Some(point_node) => parse_num_from_elem(point_node),
+        _ => None,
+      },
       created_at: match item.select(&date_sel).next() {
         Some(date_node) => parse_date_string(date_node.text().collect()),
         _ => "".to_owned(),
@@ -84,14 +90,22 @@ fn parse_list(text: String) -> Vec<FeedItem> {
 
 pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds, String> {
   let page_num = page.unwrap_or_default() + 1;
-  let target_path = format!("https://www.fmkorea.com/index.php?mid={}&page={}", category, page_num).to_string();
+  let target_path = format!("https://www.fmkorea.com/index.php?listStyle=webzine&mid={}&page={}", category, page_num).to_string();
 
-  let res = reqwest::get(target_path.clone())
-    .await.expect(format!("failed to request {}", target_path.clone()).as_str().into())
-    .text()
-    .await.expect("failed to get response text".into());
+  let html = match reqwest::get(target_path.clone()).await {
+    Ok(res) => match res.text().await {
+      Ok(txt) => txt,
+      _ => {
+        return Err("failed to get response text".to_owned());
+      },
+    },
+    Err(err) => match err.status() {
+      Some(reqwest::StatusCode::NOT_FOUND) => { return Err("404".to_owned()); },
+      _ => { return Err(format!("failed to request {}", target_path.clone()).as_str().into()); },
+    },
+  };
 
-  let items = parse_list(res);
+  let items = parse_list(html);
 
   Ok(LoadFeeds {
     items_per_page: items.len() as i32,
@@ -102,16 +116,21 @@ pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds,
   })
 }
 
-pub async fn load_detail(board_type: Option<String>, id: String) -> Result<FeedDetail, String> {
-  let target_path = match board_type {
-    Some(b_type) => format!("https://www.fmkorea.com/{}/{}", b_type, id).to_owned(),
-    _ => format!("https://www.fmkorea.com/{}", id).to_owned(),
-  };
+pub async fn load_detail(id: String) -> Result<FeedDetail, String> {
+  let target_path = format!("https://www.fmkorea.com/{}", id).to_owned();
 
-  let html = reqwest::get(target_path.clone())
-    .await.expect(format!("failed to request {}", target_path).as_str().into())
-    .text()
-    .await.expect("failed to get response text".into());
+  let html = match reqwest::get(target_path.clone()).await {
+    Ok(res) => match res.text().await {
+      Ok(txt) => txt,
+      _ => {
+        return Err("failed to get response text".to_owned());
+      },
+    },
+    Err(err) => match err.status() {
+      Some(reqwest::StatusCode::NOT_FOUND) => { return Err("404".to_owned()); },
+      _ => { return Err(format!("failed to request {}", target_path.clone()).as_str().into()); },
+    },
+  };
 
   let content_idx_start = html.find("<article").unwrap_or(0);
   let content_idx_end = html.find("<!--AfterDocument").unwrap_or(html.len());
@@ -125,7 +144,7 @@ pub async fn load_detail(board_type: Option<String>, id: String) -> Result<FeedD
 
   let header_idx_start = html.find("<div id=\"content").unwrap_or(0);
   let header_dom = Html::parse_fragment(&html[header_idx_start..content_idx_start]);
-  let title_sel = Selector::parse("div.top_area h1 span").unwrap();
+  let title_sel = Selector::parse("div.top_area h1 span:not(.STAR-BEST_T)").unwrap();
   let author_sel = Selector::parse("a.member_plate").unwrap();
   let date_sel = Selector::parse("div.top_area span.date").unwrap();
 
@@ -159,8 +178,9 @@ pub async fn load_detail(board_type: Option<String>, id: String) -> Result<FeedD
 fn parse_comment(elem: ElementRef) -> FeedComment {
   let author_sel = Selector::parse("a.member_plate").unwrap();
   let content_sel = Selector::parse("div.comment-content").unwrap();
-  let content_link_sel = Selector::parse("div.comment-content a").unwrap();
+  let content_link_sel = Selector::parse("div.comment-content a[onclick]").unwrap();
   let up_sel = Selector::parse("span.voted_count").unwrap();
+  let down_sel = Selector::parse("span.blamed_count").unwrap();
   let best_sel = Selector::parse("a.icon-hit").unwrap();
   let date_sel = Selector::parse("span.date").unwrap();
 
@@ -178,10 +198,16 @@ fn parse_comment(elem: ElementRef) -> FeedComment {
 
   match elem.select(&content_sel).next() {
     Some(content_node) => {
-      let mut text = content_node.text().collect::<String>();
-      if reply.is_some() {
-        text = text.replace(&reply.clone().unwrap(), "");
-      }
+      let mut text = "".to_owned();
+
+      content_node.text().for_each(|txt| {
+        if txt.trim().starts_with("http") {
+          contents.push(Contents::Link { url: txt.trim().to_owned(), text: None });
+        } else if reply == None || txt != reply.clone().unwrap() {
+          text.push_str(txt);
+        }
+      });
+
       contents.push(Contents::Text {
         text,
         name: Some("p".to_owned()),
@@ -197,10 +223,11 @@ fn parse_comment(elem: ElementRef) -> FeedComment {
       _ => "".to_owned(),
     },
     contents,
-    depth: if reply.is_some() { 1 } else { 0 },
+    depth: if reply != None { 1 } else { 0 },
     reply_to: reply,
     is_best: elem.select(&best_sel).next().is_some(),
     up: parse_num_from_elem(elem.select(&up_sel).next().unwrap()),
+    down: parse_num_from_elem(elem.select(&down_sel).next().unwrap()),
     created_at: match elem.select(&date_sel).next() {
       Some(date_node) => parse_date_string(date_node.text().collect()),
       _ => "".to_owned(),
