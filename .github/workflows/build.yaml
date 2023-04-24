@@ -21,12 +21,14 @@ jobs:
             src-tauri/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - uses: actions/setup-node@v3
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      - name: yarn install
-        run: yarn install
+      - name: bun install
+        run: bun install
       - name: build app
         uses: tauri-apps/tauri-action@v0
         env:
