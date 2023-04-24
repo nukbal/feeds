@@ -41,9 +41,6 @@ export default function Video({ data, comment }: Props) {
           preload="none"
         />
       </Match>
-      <Match when={loading() === null && data.url.endsWith('mp4?gif')}>
-        <Image data={{ url: data.url.replace('.mp4?gif', '.gif'), alt: null, type: 'image' }} comment={comment} />
-      </Match>
       <Match when={loading() === null}>
         <div class={`h-64 w-96 flex flex-col items-center justify-center rounded bg-gray-400/20 text-red-400 ${comment ? '' : 'mx-auto'}`}>
           <IoVideocamOffOutline size="48" />

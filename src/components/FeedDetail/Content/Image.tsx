@@ -1,6 +1,8 @@
 import { createSignal, Switch, Match } from 'solid-js';
 import { IoImageSharp } from 'solid-icons/io'
 
+import Video from './Video';
+
 interface Props {
   data: ContentImage;
   comment?: boolean;
