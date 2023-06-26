@@ -1,7 +1,5 @@
-import { createSignal, Switch, Match } from 'solid-js';
+import { createSignal, Switch, Match, Show } from 'solid-js';
 import { IoVideocamOffOutline } from 'solid-icons/io'
-
-import Image from './Image';
 
 interface Props {
   data: ContentVideo;
@@ -10,6 +8,7 @@ interface Props {
 
 export default function Video({ data, comment }: Props) {
   const [loading, setLoading] = createSignal<boolean | null>(true);
+  const [error, setError] = createSignal('');
 
   const getImageClass = () => {
     const loadingClass = loading() ? 'bg-gray-400/20 rounded animate-pulse' : '';
@@ -33,7 +32,11 @@ export default function Video({ data, comment }: Props) {
           poster={data.thumb || undefined}
           onLoad={() => setLoading(false)}
           onLoadStart={() => setLoading(false)}
-          onError={() => setLoading(null)}
+          onError={(e) => {
+            setLoading(null);
+            const elem = e.target as HTMLVideoElement;
+            setError(`${elem.error?.code} (${elem.error?.message})`);
+          }}
           controls={!isAutoPlayable}
           autoplay={isAutoPlayable}
           muted={isAutoPlayable}
@@ -46,6 +49,9 @@ export default function Video({ data, comment }: Props) {
           <IoVideocamOffOutline size="48" />
           <p class="p-2">Video load failed!</p>
           <p class="px-4" style={{ 'line-break': 'anywhere' }}>{data.url}</p>
+          <Show when={error()}>
+            <p>{error()}</p>
+          </Show>
         </div>
       </Match>
     </Switch>

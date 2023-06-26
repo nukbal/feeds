@@ -18,6 +18,14 @@ pub fn parse_num_from_elem(node: scraper::ElementRef) -> Option<i32> {
   }
 }
 
+pub fn parse_url(str: &str) -> String {
+  if str.starts_with("//") {
+    format!("https:{}", str).to_owned()
+  } else {
+    str.to_owned()
+  }
+}
+
 fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
   match elem.value() {
     scraper::Node::Element(node) => {
@@ -33,7 +41,7 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
                 scraper::Node::Element(video) => {
 
                   let thumb = match video.attr("poster") {
-                    Some(poster) => Some(poster.to_owned()),
+                    Some(poster) => Some(parse_url(poster)),
                     _ => None,
                   };
 
@@ -44,10 +52,10 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
                     _ if vid_elem.has_children() => {
                       if let Some(source_node) = vid_elem.children().find(|child| child.value().is_element()) {
                         if let Some(vid_url) = source_node.value().as_element().unwrap().attr("src") {
-                          return Some(Contents::Video { url: vid_url.to_owned(), thumb });
+                          return Some(Contents::Video { url: parse_url(vid_url), thumb });
                         }
                         if let Some(vid_url) = source_node.value().as_element().unwrap().attr("data-src") {
-                          return Some(Contents::Video { url: vid_url.to_owned(), thumb });
+                          return Some(Contents::Video { url: parse_url(vid_url), thumb });
                         }
                       }
                     },
@@ -110,7 +118,7 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
           Some(lazy_node) => {
             let alt = node.attr("alt");
             Some(Contents::Image {
-              url: lazy_node.to_owned(),
+              url: parse_url(lazy_node),
               alt: if alt.is_some() { Some(alt.unwrap().to_owned()) } else { None },
             })
           },
@@ -118,7 +126,7 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
             let href = node.attr("src");
             let alt = node.attr("alt");
             Some(Contents::Image {
-              url: href.unwrap().to_owned(),
+              url: parse_url(href.unwrap()),
               alt: if alt.is_some() { Some(alt.unwrap().to_owned()) } else { None },
             })
           },
@@ -127,11 +135,11 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
           let href = node.attr("src");
           let poster = node.attr("poster");
           let url = match href {
-            Some(url) => Some(url.to_owned()),
+            Some(url) => Some(parse_url(url)),
             _ => match elem.first_child() {
               Some(source_node) => match source_node.value() {
                 scraper::Node::Element(sn) => match sn.attr("data-src") {
-                  Some(source_url) => Some(source_url.to_owned()),
+                  Some(source_url) => Some(parse_url(source_url)),
                   _ => None,
                 }
                 _ => None,
@@ -148,7 +156,7 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
           // 루리웹 한정으로, video로 표시하지만, 사실 파일은 webp밖에 존재하지 않으므로 fallback을 미리 해둠
           if url_text.ends_with(".mp4?webp") {
             return Some(Contents::Image {
-              url: url_text.replace(".mp4?webp", ".webp"),
+              url: parse_url(&url_text).replace(".mp4?webp", ".webp"),
               alt: None,
             });
           }
@@ -156,7 +164,7 @@ fn convert_node(elem: NodeRef<Node>) -> Option<Contents> {
           Some(Contents::Video {
             url: url_text,
             thumb: match poster {
-              Some(thumb) => Some(thumb.to_owned()),
+              Some(thumb) => Some(parse_url(thumb)),
               _ => None,
             },
           })

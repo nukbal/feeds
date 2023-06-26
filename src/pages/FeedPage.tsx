@@ -77,7 +77,7 @@ export default function ListOutlet() {
 
   return (
     <>
-      <div class="relative" style={{ width: px(size()), 'min-width': px(size()) }}>
+      <div class="relative w-full" style={{ 'min-width': px(size()), 'max-width': px(size()) }}>
         <Feeds
           ref={ref}
           title={FEED_TITLE[params.name!] || 'All Inbox'}

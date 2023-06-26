@@ -41,7 +41,7 @@ fn parse_list(text: String) -> Vec<FeedItem> {
       },
       thumb: match item.select(&thumb_sel).next() {
         Some(thumb_node) => match thumb_node.value().attr("data-original") {
-          Some(thumb_url) => Some(thumb_url.to_owned()),
+          Some(thumb_url) => Some(super::utils::parse_url(thumb_url)),
           _ => Some("None".to_owned()),
         },
         _ => None,

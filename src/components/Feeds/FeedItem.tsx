@@ -49,6 +49,7 @@ export default function FeedItem({ item }: Props) {
           </div>
         </div>
       </div>
+      <hr class="absolute bottom-0 left-4 right-4 border-stone-600" />
     </Link>
   );
 }

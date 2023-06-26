@@ -3,12 +3,14 @@ import { IoGlobeOutline, IoShareOutline, IoCopyOutline } from 'solid-icons/io';
 import { open } from '@tauri-apps/api/shell';
 
 import useTitle from 'models/title';
-import Popover from 'components/Popover';
+import Popover, { PopoverRefType } from 'components/Popover';
 
 export default function FeedDetailHeader() {
   const params = useParams();
   const [search] = useSearchParams();
   const [title] = useTitle;
+
+  let popover: PopoverRefType | undefined;
 
   const getUrl = () => {
     const serviceName = search.name || params.name;
@@ -35,16 +37,18 @@ export default function FeedDetailHeader() {
 
   const openBrowser = () => {
     const url = getUrl();
-    if (!url) return;
-
-    open(url);
+    if (url) {
+      open(url);
+    }
+    popover?.close();
   };
 
   const copyUrl = async () => {
     const url = getUrl();
-    if (!url) return;
-
-    await navigator.clipboard.writeText(url);
+    if (url) {
+      await navigator.clipboard.writeText(url);
+    }
+    popover?.close();
   };
 
   return (
@@ -55,6 +59,7 @@ export default function FeedDetailHeader() {
     >
       <h3 class="font-medium text-sm m-0 p-0 leading-none cursor-default focus:cursor-default">{title()}</h3>
       <Popover
+        ref={(e) => { popover = e; }}
         label={(
           <button class="px-2 py-1.5 hover:bg-gray-400/40 rounded leading-none">
             <IoShareOutline size="20" />

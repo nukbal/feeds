@@ -46,10 +46,8 @@
       "targets": "all"
     },
     "security": {
-      "csp": null
-    },
-    "updater": {
-      "active": false
+      "dangerousDisableAssetCspModification": ["media-src"],
+      "csp": "default-src 'self'; img-src 'self' https://*; media-src 'self' https://* stream: https://* http://*.ruliweb.net; frame-src 'self' https://www.youtube.com;"
     },
     "windows": [
       {

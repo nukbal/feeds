@@ -4,7 +4,10 @@ import { Ref } from '@solid-primitives/refs';
 
 import { px } from 'utils/unit';
 
+export type PopoverRefType = { open: () => void, close: () => void; };
+
 interface Props {
+  ref?: (ref: PopoverRefType) => void;
   label: JSX.Element;
   children: JSX.Element;
   placement?: Placement;
@@ -15,6 +18,10 @@ export default function Popover(p: Props) {
 
   let anchorRef: HTMLDivElement | undefined;
   let popRef: HTMLDivElement | undefined;
+
+  onMount(() => {
+    p.ref?.({ open: () => setShow(true), close: () => setShow(false) });
+  });
 
   const updateTooltip = () => {
     if (!anchorRef || !popRef) return;

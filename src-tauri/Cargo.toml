@@ -10,10 +10,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-alpha.2", features = [] }
+tauri-build = { version = "1.4", features = [] }
 
 [dependencies]
-tauri = { version = "2.0.0-alpha.4", features = ["macos-private-api", "shell-open", "window-close", "window-hide", "window-maximize", "window-minimize", "window-show", "window-start-dragging", "window-unmaximize", "window-unminimize"] }
+tauri = { version = "1.4", features = [ "window-unmaximize", "window-start-dragging", "shell-open", "window-unminimize", "window-maximize", "window-hide", "window-minimize", "window-close", "window-show", "macos-private-api"] }
 serde = { version = "1.0", features = ["derive"] }
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
@@ -24,6 +24,9 @@ ego-tree = "0.6.2"
 chrono = "0.4"
 
 [features]
+# by default Tauri runs in production mode
+# when `tauri dev` runs it is executed with `cargo run --no-default-features` if `devPath` is an URL
+default = ["custom-protocol"]
 # this feature is used for production builds or when `devPath` points to the filesystem
 # DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
