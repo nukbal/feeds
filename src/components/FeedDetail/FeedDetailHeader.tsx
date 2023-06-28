@@ -1,25 +1,24 @@
-import { useParams, useSearchParams } from '@solidjs/router';
 import { IoGlobeOutline, IoShareOutline, IoCopyOutline } from 'solid-icons/io';
 import { open } from '@tauri-apps/api/shell';
 
 import useTitle from 'models/title';
+import { detailRoute } from 'models/route';
 import Popover, { PopoverRefType } from 'components/Popover';
 
 export default function FeedDetailHeader() {
-  const params = useParams();
-  const [search] = useSearchParams();
   const [title] = useTitle;
+  const [params] = detailRoute;
 
   let popover: PopoverRefType | undefined;
 
   const getUrl = () => {
-    const serviceName = search.name || params.name;
-    const feedName = search.feed || params.feed;
-    const docId = params.id;
+    const serviceName = params().name;
+    const feedName = params().feed;
+    const docId = params().id;
 
     if (serviceName === 'ruliweb') {
       let boardName = 'best';
-      let boardId = search.subId || '300143';
+      let boardId = params().subId || '300143';
       if (feedName.includes(':')) {
         const arr = feedName.split(':');
         boardName = arr[0];

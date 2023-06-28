@@ -1,4 +1,4 @@
-import { Link, useParams } from '@solidjs/router';
+import { detailRoute, feedRoute } from 'models/route';
 
 interface NavProps {
   id: string;
@@ -7,14 +7,20 @@ interface NavProps {
 }
 
 export default function FeedLink({ id, subId, children }: NavProps) {
-  const params = useParams();
-  const isActive = () => params.id === id;
+  const [route, setRoute] = detailRoute;
+
+  const isActive = () => route().id === id;
+  const handleNavigate = () => {
+    const parent = feedRoute[0]();
+    setRoute({ ...parent, id, subId });
+  };
+
   return (
-    <Link
-      href={`read/${id}?subId=${subId}`}
-      class={`block p-4 rounded relative ${isActive() ? 'bg-blue-600' : 'hover:bg-slate-700'}`}
+    <button
+      class={`block p-4 w-full text-left rounded relative ${isActive() ? 'bg-blue-600' : 'hover:bg-slate-700'}`}
+      onClick={handleNavigate}
     >
       {children}
-    </Link>
+    </button>
   );
 }

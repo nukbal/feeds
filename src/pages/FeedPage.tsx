@@ -1,11 +1,10 @@
 import { createSignal, createResource, createEffect } from 'solid-js';
-import { Outlet, useParams } from '@solidjs/router';
 import { invoke } from '@tauri-apps/api';
 
 import Feeds from 'components/Feeds';
-import FeedDetail from 'components/FeedDetail';
 import ResizeBorder from 'components/ResizeBorder';
-import { feed } from 'models/size';
+import { feedSize } from 'models/size';
+import { feedRoute } from 'models/route';
 import { px } from 'utils/unit';
 
 interface LoadFeedType {
@@ -34,29 +33,22 @@ async function fetcher([name, feed, page]: Array<string | number>) {
 }
 
 export default function ListOutlet() {
-  const params = useParams();
   const [page, setPage] = createSignal(0);
-  const [size, setSize] = feed;
+  const [params] = feedRoute;
+  const [size, setSize] = feedSize;
 
-  const [data, { mutate, refetch }] = createResource(() => [params.name, params.feed, page()], fetcher);
+  const [data, { mutate, refetch }] = createResource(() => [params().name, params().feed, page()], fetcher);
 
   let ref: HTMLUListElement | undefined;
-  let detailRef: HTMLDivElement | undefined;
 
   createEffect((prev) => {
     ref?.scrollTo({ top: 0 });
 
-    if (params.feed !== prev) {
+    if (params().feed !== prev) {
       mutate({ items: [], page: 0, total: null, totalPages: null, itemsPerPage: 0, loadAt: 0 });
       setPage(0);
     }
-  }, params.feed);
-
-  createEffect((prev) => {
-    if (params.id !== prev) {
-      detailRef?.scrollTo({ top: 0, left: 0 });
-    }
-  }, params.id);
+  }, params().feed);
 
   const handleRequest = async (nextNum: number = 0) => {
     if (page() === nextNum) {
@@ -76,22 +68,17 @@ export default function ListOutlet() {
   };
 
   return (
-    <>
-      <div class="relative w-full" style={{ 'min-width': px(size()), 'max-width': px(size()) }}>
-        <Feeds
-          ref={ref}
-          title={FEED_TITLE[params.name!] || 'All Inbox'}
-          total={data()?.total ?? 0}
-          items={data()?.items ?? []}
-          page={page()}
-          onRequest={handleRequest}
-        />
-        <ResizeBorder onSizeChange={handleWidthChange} />
-      </div>
-      <FeedDetail ref={detailRef}>
-        <Outlet />
-      </FeedDetail>
-    </>
+    <div class="relative w-full" style={{ 'min-width': px(size()), 'max-width': px(size()) }}>
+      <Feeds
+        ref={ref}
+        title={FEED_TITLE[params.name!] || 'All Inbox'}
+        total={data()?.total ?? 0}
+        items={data()?.items ?? []}
+        page={page()}
+        onRequest={handleRequest}
+      />
+      <ResizeBorder onSizeChange={handleWidthChange} />
+    </div>
   );
 }
 

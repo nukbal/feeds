@@ -1,5 +1,6 @@
 import { open } from '@tauri-apps/api/shell';
-import { useNavigate } from '@solidjs/router';
+
+import { detailRoute } from 'models/route';
 
 interface Props {
   url: string;
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export default function ContentLink({ url, maxLength = 64, ...rest }: Props) {
-  const navigate = useNavigate();
+  const [_, setRoute] = detailRoute;
 
   const openLink = () => {
     if (!url.startsWith('http')) return;
@@ -19,12 +20,12 @@ export default function ContentLink({ url, maxLength = 64, ...rest }: Props) {
       const lastCode = url[lastIdx].charCodeAt(0);
       if (lastCode >= 48 && lastCode <= 57) {
         const id = url.substring(url.lastIndexOf('/') + 1, url.length);
-        return navigate(`../${id}?name=fmk`);
+        return setRoute({ name: 'fmk', feed: 'hot', id });
       }
       if (url.includes('document_srl=')) {
         const id_idx = url.indexOf('document_srl') + 13;
         const id = url.substring(id_idx, url.indexOf('&', 13) || url.length - 1)
-        return navigate(`../${id}?name=fmk`);
+        return setRoute({ name: 'fmk', feed: 'hot', id });
       }
     } else if ((url.startsWith('https://m.ruliweb.com') || url.startsWith('https://bbs.ruliweb.com')) && url.includes('/read/')) {
       const lastIdx = url.includes('?') ? url.indexOf('?') - 1   : url.length - 1;
@@ -33,7 +34,7 @@ export default function ContentLink({ url, maxLength = 64, ...rest }: Props) {
         const id = url.substring(url.lastIndexOf('/') + 1, url.length);
         const boardId = url.substring(url.indexOf('/board/') + 7, url.indexOf('/read/'));
         const boardName = url.substring(url.indexOf('/', 10) + 1, url.indexOf('/board'));
-        return navigate(`../${id}?name=ruliweb&feed=${boardName}:${boardId}`)
+        return setRoute({ name: 'ruliweb', feed: `${boardName}:${boardId}`, id });
       }
     }
     open(url);

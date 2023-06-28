@@ -45,10 +45,6 @@
       "identifier": "com.nukbal.feeds",
       "targets": "all"
     },
-    "security": {
-      "dangerousDisableAssetCspModification": ["media-src"],
-      "csp": "default-src 'self'; img-src 'self' https://*; media-src 'self' https://* stream: https://* http://*.ruliweb.net; frame-src 'self' https://www.youtube.com;"
-    },
     "windows": [
       {
         "fullscreen": false,

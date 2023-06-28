@@ -1,6 +1,7 @@
 import { createSignal, Show } from 'solid-js';
-import { Link, useLocation } from '@solidjs/router';
-import { IoCloseCircleOutline } from 'solid-icons/io'
+import { IoCloseCircleOutline } from 'solid-icons/io';
+
+import { feedRoute } from 'models/route';
 
 interface Props {
   name: string;
@@ -10,13 +11,15 @@ interface Props {
 }
 
 export default function FeedLink({ name, feed, label, removable }: Props) {
-  const location = useLocation();
   const [hover, setHover] = createSignal(false);
+  const [route, setRoute] = feedRoute;
 
-  const path = `/feeds/${name}/${feed}/`;
-  const handleClickLink = () => localStorage.setItem('init_path', path);
+  const handleClickLink = () => {
+    setRoute({ name, feed });
+    localStorage.setItem('init_route', JSON.stringify({ name, feed }));
+  };
 
-  const isActive = () => location.pathname.startsWith(path);
+  const isActive = () => route().name === name && route().feed === feed;
 
   const handleRemove = (e: MouseEvent) => {
     e.preventDefault();
@@ -24,8 +27,7 @@ export default function FeedLink({ name, feed, label, removable }: Props) {
   };
 
   return (
-    <Link
-      href={path}
+    <button
       class={`p-1 rounded flex items-center justify-between ${isActive() ? 'bg-gray-500/50' : ''}`}
       onClick={handleClickLink}
       onMouseOver={() => setHover(true)}
@@ -39,6 +41,6 @@ export default function FeedLink({ name, feed, label, removable }: Props) {
           <IoCloseCircleOutline />
         </button>
       </Show>
-    </Link>
+    </button>
   );
 }
