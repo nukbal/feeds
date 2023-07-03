@@ -17,9 +17,9 @@ export default function FeedHeader(p: Props) {
     >
       <div class="flex flex-col justify-center select-none">
         <h3 class="font-medium text-sm m-0 p-0 leading-none cursor-default focus:cursor-default">{p.title}</h3>
-        <p class="text-xs leading-none cursor-default focus:cursor-default">
-          <Show when={p.total}><span class="mr-2">{p.total} items</span></Show>
-          <span>page {p.page + 1}</span>
+        <p class="text-xs leading-none cursor-default mt-0.5 focus:cursor-default">
+          <span class="mr-1">page {p.page + 1}</span>
+          <Show when={p.total}><span>| {p.total} items</span></Show>
         </p>
       </div>
       <div class="space-x-2">

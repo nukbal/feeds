@@ -16,7 +16,13 @@ export default function Content({ data, nested, comment }: Props) {
   return (
     <Switch>
       <Match when={data.type === 'text'}>
-        <Dynamic component={(data as ContentText).name ?? 'span'} class={nested ? '' : 'block pb-1 last:pb-0'}>
+        <Dynamic
+          component={(data as ContentText).name ?? 'span'}
+          classList={{
+            'block mb-1 last:mb-0': !nested,
+            'overflow-x-auto no-scrollbar bg-black bg-opacity-20 dark:bg-white dark:bg-opacity-10 p-2 rounded': (data as ContentText).name === 'pre',
+          }}
+        >
           {(data as ContentText).text}
         </Dynamic>
       </Match>

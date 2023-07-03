@@ -1,4 +1,4 @@
-import { createSignal, Switch, Match } from 'solid-js';
+import { createSignal, Switch, Match, onCleanup } from 'solid-js';
 import { IoImageSharp } from 'solid-icons/io'
 
 interface Props {
@@ -14,6 +14,11 @@ export default function Image({ data, comment }: Props) {
     if (comment) return loadingClass;
     return `m-0 mx-auto ${loadingClass}`;
   };
+
+  onCleanup(() => {
+    // image cache persists after dismount
+    window.URL.revokeObjectURL(data.url);
+  });
 
   return (
     <Switch>

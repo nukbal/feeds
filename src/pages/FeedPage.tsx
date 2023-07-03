@@ -6,6 +6,7 @@ import ResizeBorder from 'components/ResizeBorder';
 import { feedSize } from 'models/size';
 import { feedRoute } from 'models/route';
 import { px } from 'utils/unit';
+import { FEED_TITLE } from 'config/const';
 
 interface LoadFeedType {
   items: FeedItemType[];
@@ -72,7 +73,7 @@ export default function ListOutlet() {
       <Feeds
         ref={ref}
         title={FEED_TITLE[params.name!] || 'All Inbox'}
-        total={data()?.total ?? 0}
+        total={data()?.itemsPerPage ?? 0}
         items={data()?.items ?? []}
         page={page()}
         onRequest={handleRequest}
@@ -81,9 +82,3 @@ export default function ListOutlet() {
     </div>
   );
 }
-
-const FEED_TITLE = {
-  hacker_news: 'Hacker News',
-  ruliweb: '루리웹',
-  fmk: '에펨코리아',
-} as { [key: string]: string };

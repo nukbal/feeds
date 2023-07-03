@@ -13,9 +13,7 @@ export default function FeedSection(p: Props) {
   const [show, setShow] = createSignal(true);
   const [hover, setHover] = createSignal(false);
 
-  const toggleList = () => {
-    setShow(!show())
-  };
+  const toggleList = () => setShow(!show());
 
   return (
     <div class="cursor-default text-sm mb-6">

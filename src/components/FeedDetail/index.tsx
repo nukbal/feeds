@@ -1,3 +1,9 @@
+import { createSignal, onCleanup, onMount } from 'solid-js';
+import { appWindow } from '@tauri-apps/api/window';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+
+import { feedSize, sidebar } from 'models/size';
+
 import FeedDetailHeader from './FeedDetailHeader';
 
 interface Props {
@@ -6,8 +12,23 @@ interface Props {
 }
 
 export default function FeedDetail(p: Props) {
+  const [totalWidth, setTotalWidth] = createSignal(window.innerWidth);
+  let unsubResize: UnlistenFn;
+
+  onMount(async () => {
+    unsubResize = await appWindow.onResized(({ payload }) => {
+      setTotalWidth(payload.width);
+    });
+  });
+
+  onCleanup(() => {
+    unsubResize?.();
+  });
+
+  const size = () => `${totalWidth() - feedSize[0]() - sidebar[0]()}px`;
+
   return (
-    <div class="relative flex-auto overflow-x-hidden">
+    <div class="relative flex-auto overflow-x-hidden" style={{ 'max-width': size() }}>
       <FeedDetailHeader />
       <div
         ref={p.ref}

@@ -1,4 +1,4 @@
-import { createSignal, Switch, Match, Show } from 'solid-js';
+import { createSignal, Switch, Match, Show, onCleanup } from 'solid-js';
 import { IoVideocamOffOutline } from 'solid-icons/io'
 
 interface Props {
@@ -15,6 +15,11 @@ export default function Video({ data, comment }: Props) {
     if (comment) return loadingClass;
     return `m-0 mx-auto ${loadingClass}`;
   };
+
+  onCleanup(() => {
+    // video cache persists after dismount
+    window.URL.revokeObjectURL(data.url);
+  });
 
   const isAutoPlayable = comment || data.url.endsWith('gif');
 

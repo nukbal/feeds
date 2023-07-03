@@ -1,7 +1,9 @@
 import { For } from "solid-js";
 
 export default function FeedLoading() {
-  let arr = Array.from({ length: 8 });
+  const arrNum = Math.max(8, Math.round(window.innerHeight / 95));
+  const arr = Array.from({ length: arrNum });
+
   return (
     <div class="animate-pulse">
       <For each={arr}>
