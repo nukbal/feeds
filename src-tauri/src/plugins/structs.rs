@@ -25,6 +25,7 @@ pub struct LoadFeeds {
   pub total: Option<i32>,
   pub total_pages: Option<i32>,
   pub items_per_page: i32,
+  pub is_last: bool,
 }
 
 #[derive(Default, Debug, Serialize)]

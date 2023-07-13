@@ -3,6 +3,7 @@ import { appWindow } from '@tauri-apps/api/window';
 import type { UnlistenFn } from '@tauri-apps/api/event';
 
 import { feedSize, sidebar } from 'models/size';
+import focus from 'models/focus';
 
 import FeedDetailHeader from './FeedDetailHeader';
 
@@ -28,7 +29,7 @@ export default function FeedDetail(p: Props) {
   const size = () => `${totalWidth() - feedSize[0]() - sidebar[0]()}px`;
 
   return (
-    <div class="relative flex-auto overflow-x-hidden" style={{ 'max-width': size() }}>
+    <div class="relative flex-auto overflow-x-hidden" classList={{ 'opacity-50': !focus() }} style={{ 'max-width': size() }}>
       <FeedDetailHeader />
       <div
         ref={p.ref}

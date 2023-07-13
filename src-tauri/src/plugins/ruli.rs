@@ -173,6 +173,7 @@ pub async fn load_list(category: String, page: Option<i32>) -> Result<LoadFeeds,
     page: page_num,
     total: None,
     total_pages: None,
+    is_last: false,
   })
 }
 

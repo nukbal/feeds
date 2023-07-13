@@ -1,10 +1,12 @@
 import { sidebar } from 'models/size';
 import { px } from 'utils/unit';
+import { platform } from 'config/const';
 
 import ResizeBorder from '../ResizeBorder';
 
 import Decorator from './Decorator';
 import FeedList from './FeedList';
+import focus from 'models/focus';
 
 export default function Sidebar() {
   const [size, setSize] = sidebar;
@@ -19,7 +21,11 @@ export default function Sidebar() {
   };
 
   return (
-    <aside class="relative select-none" style={{ width: px(size()), 'min-width': px(size()) }}>
+    <aside
+      class="relative select-none"
+      classList={{ 'bg-stone-900': platform() !== 'darwin', 'opacity-50': !focus() }}
+      style={{ width: px(size()), 'min-width': px(size()) }}
+    >
       <div class="w-full h-12" data-tauri-drag-region>
         <Decorator />
       </div>

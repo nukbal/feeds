@@ -6,6 +6,7 @@ interface Props {
   total: number;
   loading?: boolean;
   page: number;
+  last?: boolean;
   onRefresh?: (num: number) => void;
 }
 
@@ -24,17 +25,21 @@ export default function FeedHeader(p: Props) {
       </div>
       <div class="space-x-2">
         <Show when={p.page > 0}>
-          <button class="px-2 py-1.5 hover:bg-gray-400/40 rounded leading-none" onClick={() => p.onRefresh?.(p.page - 1)}>
+          <button class={buttonStyle} onClick={() => p.onRefresh?.(p.page - 1)} disabled={p.loading}>
             <IoChevronBack size="20" />
           </button>
         </Show>
-        <button class="px-2 py-1.5 hover:bg-gray-400/40 rounded leading-none" onClick={() => p.onRefresh?.(p.page + 1)}>
-          <IoChevronForward size="20" />
-        </button>
-        <button class="px-2 py-1.5 hover:bg-gray-400/40 rounded leading-none" onClick={() => p.onRefresh?.(0)}>
+        <Show when={!p.last}>
+          <button class={buttonStyle} onClick={() => p.onRefresh?.(p.page + 1)} disabled={p.loading}>
+            <IoChevronForward size="20" />
+          </button>
+        </Show>
+        <button class={buttonStyle} onClick={() => p.onRefresh?.(0)} disabled={p.loading}>
           <IoRefresh size="20" />
         </button>
       </div>
     </div>
   );
 }
+
+const buttonStyle = 'px-2 py-1.5 enabled:hover:bg-gray-400/40 rounded leading-none disabled:opacity-20';

@@ -1,4 +1,5 @@
 {
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
     "beforeDevCommand": "yarn run dev",
     "beforeBuildCommand": "yarn run build",
@@ -11,6 +12,7 @@
     "version": "0.0.1"
   },
   "tauri": {
+    "macOSPrivateApi": true,
     "allowlist": {
       "all": false,
       "shell": {
@@ -19,6 +21,9 @@
         "open": true,
         "scope": [],
         "sidecar": false
+      },
+      "os": {
+        "all": true
       },
       "window": {
         "all": false,
@@ -32,7 +37,6 @@
         "startDragging": true
       }
     },
-    "macOSPrivateApi": true,
     "bundle": {
       "active": true,
       "icon": [

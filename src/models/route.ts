@@ -14,5 +14,5 @@ export interface FeedDetailRouteType extends FeedRouteType {
   subId?: string | null;
 }
 
-export const detailRoute = createSignal<FeedDetailRouteType>({ name: '', feed: '', id: '' });
+export const detailRoute = createSignal<FeedDetailRouteType>({ name: '', feed: '', id: '' }, { equals: false });
 

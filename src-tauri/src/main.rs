@@ -20,7 +20,7 @@ fn main() {
         window_vibrancy::apply_vibrancy(&window, NSVisualEffectMaterial::Sidebar, None, Some(12.0)).expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
         
         #[cfg(target_os = "windows")]
-        window_vibrancy::apply_blur(&window, Some((18, 18, 18, 125))).expect("Unsupported platform! 'apply_blur' is only supported on Windows");
+        window_vibrancy::apply_blur(&window, Some((0, 0, 0, 0))).expect("Unsupported platform! 'apply_blur' is only supported on Windows");
 
         #[cfg(debug_assertions)] {
             window.open_devtools();

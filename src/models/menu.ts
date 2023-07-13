@@ -26,6 +26,6 @@ const defaultValue = [
   },
 ] as Array<{ id: SupportServices; name: string; items: FeedLinkItem[] }>;
 
-const [menu, setMenu] = createSignal(defaultValue);
+const [menu, setMenu] = createSignal(defaultValue, { equals: false });
 
 export default menu;

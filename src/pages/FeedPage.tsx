@@ -5,8 +5,8 @@ import Feeds from 'components/Feeds';
 import ResizeBorder from 'components/ResizeBorder';
 import { feedSize } from 'models/size';
 import { feedRoute } from 'models/route';
+import menu from 'models/menu';
 import { px } from 'utils/unit';
-import { FEED_TITLE } from 'config/const';
 
 interface LoadFeedType {
   items: FeedItemType[];
@@ -15,6 +15,7 @@ interface LoadFeedType {
   totalPages: number| null;
   itemsPerPage: number;
   loadAt: number;
+  isLast: boolean;
 }
 
 const listCache = new Map<string, LoadFeedType>();
@@ -46,7 +47,7 @@ export default function ListOutlet() {
     ref?.scrollTo({ top: 0 });
 
     if (params().feed !== prev) {
-      mutate({ items: [], page: 0, total: null, totalPages: null, itemsPerPage: 0, loadAt: 0 });
+      mutate({ items: [], page: 0, total: null, totalPages: null, itemsPerPage: 0, loadAt: 0, isLast: false });
       setPage(0);
     }
   }, params().feed);
@@ -68,14 +69,22 @@ export default function ListOutlet() {
     });
   };
 
+  const title = () => {
+    const feed = menu().find((item) => item.id === params().name);
+    const feedName = feed?.items.find((item) => item.id === params().feed);
+    return `${feed?.name ?? ''}> ${feedName?.label}`;
+  };
+
   return (
     <div class="relative w-full" style={{ 'min-width': px(size()), 'max-width': px(size()) }}>
       <Feeds
         ref={ref}
-        title={FEED_TITLE[params.name!] || 'All Inbox'}
+        title={title()}
         total={data()?.itemsPerPage ?? 0}
         items={data()?.items ?? []}
+        last={data()?.isLast}
         page={page()}
+        loading={data.loading}
         onRequest={handleRequest}
       />
       <ResizeBorder onSizeChange={handleWidthChange} />

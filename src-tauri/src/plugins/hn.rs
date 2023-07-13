@@ -5,7 +5,7 @@ use super::structs::{LoadFeeds, FeedItem, FeedDetail, FeedComment};
 use super::utils::parse_html;
 
 pub async fn load_feed(page: Option<i32>) -> Result<LoadFeeds, String> {
-  let target_path = format!("https://news.ycombinator.com/news?p={:?}", page.or(Some(0)).unwrap());
+  let target_path = format!("https://news.ycombinator.com/news?p={:?}", page.or(Some(0)).unwrap() + 1);
   let txt = reqwest::get(target_path.clone())
     .await.expect(format!("failed to request {}", target_path.clone()).as_str().into())
     .text()
@@ -22,7 +22,8 @@ pub async fn load_feed(page: Option<i32>) -> Result<LoadFeeds, String> {
   let title_sel = Selector::parse("td.title a").unwrap();
   let author_sel = Selector::parse("td.subtext a.hnuser").unwrap();
   let date_sel = Selector::parse("td.subtext span.age").unwrap();
-  let cmt_sel = Selector::parse("td.subtext span.subline a:last-child").unwrap();
+  let cmt_sel = Selector::parse("td.subtext span.subline > a:last-child").unwrap();
+  let next_sel = Selector::parse("a.morelink").unwrap();
 
   html.select(&row_sel).into_iter().for_each(|item| {
     let title_node = item.select(&title_sel).next().unwrap();
@@ -48,7 +49,7 @@ pub async fn load_feed(page: Option<i32>) -> Result<LoadFeeds, String> {
       comments: match next_node.select(&cmt_sel).next() {
         Some(node) => {
           let mut cmt_txt = node.text().collect::<String>();
-          cmt_txt = cmt_txt.replace("comments", "").trim().to_owned();
+          cmt_txt = cmt_txt.replace("comment", "").replace("s", "").trim().to_owned();
           if let Ok(num) = cmt_txt.parse::<i32>() {
             Some(num)
           } else {
@@ -68,6 +69,7 @@ pub async fn load_feed(page: Option<i32>) -> Result<LoadFeeds, String> {
       _ => 0,
     },
     items_per_page: size,
+    is_last: html.select(&next_sel).next().is_none(),
     ..Default::default()
   })
 }
